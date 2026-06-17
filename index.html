@@ -1878,11 +1878,12 @@ function clearSignature(){
   sigHasContent=false;
 }
 
-// Resize chữ ký xuống kích thước nhỏ (300x120) và xuất JPEG chất lượng vừa phải
-// để tránh ảnh quá nặng gây timeout khi gửi lên Apps Script.
+// Resize chữ ký xuống kích thước nhỏ và xuất JPEG chất lượng thấp vừa đủ nhìn rõ,
+// vì giờ gửi qua JSONP (query string URL) nên cần giữ base64 càng ngắn càng tốt
+// để không vượt giới hạn độ dài URL (~8000 ký tự an toàn).
 function getResizedSignatureBase64(){
   const canvas=document.getElementById('signatureCanvas');
-  const outW=300, outH=120;
+  const outW=220, outH=90;
   const outCanvas=document.createElement('canvas');
   outCanvas.width=outW;
   outCanvas.height=outH;
@@ -1891,7 +1892,7 @@ function getResizedSignatureBase64(){
   outCtx.fillStyle='#ffffff';
   outCtx.fillRect(0,0,outW,outH);
   outCtx.drawImage(canvas,0,0,outW,outH);
-  return outCanvas.toDataURL('image/jpeg',0.7); // chất lượng 70% -> file nhẹ
+  return outCanvas.toDataURL('image/jpeg',0.5); // chất lượng 50% -> base64 chỉ còn ~2000-4000 ký tự
 }
 
 async function submitFeedback(){
@@ -1937,14 +1938,19 @@ async function submitFeedback(){
   };
 
   try{
-    // Dùng fetch POST thường (không qua JSONP) vì cần gửi dữ liệu ảnh (dataURL) khá dài,
-    // JSONP gắn vào query string URL sẽ vượt giới hạn độ dài URL của trình duyệt.
-    const res=await fetch(CONFIG.payrollUrl,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'}, // tránh preflight OPTIONS với Apps Script
-      body:JSON.stringify(payload)
-    });
-    const json=await res.json();
+    // QUAN TRỌNG: dùng JSONP (giống loadData/getPayroll) thay vì fetch POST.
+    // fetch POST tới Apps Script bị Chrome chặn bởi CORS (Apps Script không trả
+    // header Access-Control-Allow-Origin), nên dù dữ liệu vẫn ghi vào Sheet/Drive,
+    // trình duyệt không đọc được kết quả trả về -> tưởng như "không có gì xảy ra".
+    // JSONP không bị giới hạn này vì nó load qua <script> tag, không phải fetch.
+    const encodedPayload=encodeURIComponent(JSON.stringify(payload));
+    const url=CONFIG.payrollUrl+'?action=submitFeedback&payload='+encodedPayload;
+
+    if(url.length>7500){
+      throw new Error('Chữ ký quá phức tạp, vui lòng bấm "Xoá" và ký lại đơn giản hơn (URL dài '+url.length+' ký tự)');
+    }
+
+    const json=await fetchJSONP(url);
     if(json.status!=='ok')throw new Error(json.message||'Gửi không thành công');
 
     msg.textContent='✅ '+json.message;
