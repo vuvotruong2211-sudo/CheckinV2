@@ -1759,6 +1759,7 @@ function renderPayrollContent(data, nv, m, y){
 // ============================================================
 let currentPayrollContext={nv:'',thang:0,nam:0};
 let currentFeedbackMode=''; // 'agree' | 'dispute'
+let feedbackSubmittedThisSession=false; // true sau khi gửi thành công cho phiếu lương đang xem
 let sigCtx=null, sigDrawing=false, sigHasContent=false, sigLastX=0, sigLastY=0;
 
 // Bỏ dấu tiếng Việt -> dùng cho cột "Họ tên không dấu"
@@ -1769,6 +1770,7 @@ function removeVietnameseTones(str){
 }
 
 function resetFeedbackUI(){
+  feedbackSubmittedThisSession=false;
   document.getElementById('feedbackForm').classList.remove('show');
   document.getElementById('feedbackChoiceView').style.display='block';
   document.getElementById('feedbackNoiDung').value='';
@@ -1777,10 +1779,24 @@ function resetFeedbackUI(){
   msg.className='feedback-msg';
   document.getElementById('feedbackSubmitBtn').disabled=false;
   document.getElementById('feedbackSubmitBtn').textContent='Gửi xác nhận';
+  const statusBox=document.getElementById('feedbackStatusBox');
+  statusBox.className='feedback-status pending';
+  statusBox.innerHTML='ℹ️ Nếu bạn không phản hồi, hệ thống xem như bạn <strong>đồng ý</strong> với bảng lương và chấm công nêu trên.';
   currentFeedbackMode='';
 }
 
+// Khoá vĩnh viễn khu vực phản hồi sau khi đã gửi thành công cho phiếu lương đang xem
+// (chỉ mở lại khi người dùng xem 1 phiếu lương KHÁC, qua resetFeedbackUI ở renderPayrollContent)
+function lockFeedbackUI(label){
+  feedbackSubmittedThisSession=true;
+  document.getElementById('feedbackForm').classList.remove('show');
+  document.getElementById('feedbackChoiceView').style.display='none';
+  document.getElementById('feedbackSubmitBtn').disabled=true;
+  document.getElementById('feedbackSubmitBtn').textContent=label||'Đã gửi';
+}
+
 function openFeedbackForm(mode){
+  if(feedbackSubmittedThisSession)return; // đã gửi rồi, không cho mở lại
   currentFeedbackMode=mode;
   const form=document.getElementById('feedbackForm');
   const title=document.getElementById('feedbackFormTitle');
@@ -1936,8 +1952,6 @@ async function submitFeedback(){
     submitBtn.textContent='Đã gửi';
 
     setTimeout(()=>{
-      document.getElementById('feedbackForm').classList.remove('show');
-      document.getElementById('feedbackChoiceView').style.display='block';
       const statusBox=document.getElementById('feedbackStatusBox');
       if(currentFeedbackMode==='agree'){
         statusBox.className='feedback-status agreed';
@@ -1946,6 +1960,7 @@ async function submitFeedback(){
         statusBox.className='feedback-status disputed';
         statusBox.innerHTML='⚠️ Bạn đã gửi <strong>khiếu nại</strong> cho tháng '+currentPayrollContext.thang+'/'+currentPayrollContext.nam+'. Bộ phận liên quan sẽ phản hồi sớm.';
       }
+      lockFeedbackUI('Đã gửi — không thể gửi lại');
     },1200);
 
   }catch(e){
