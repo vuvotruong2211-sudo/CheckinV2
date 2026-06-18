@@ -517,7 +517,7 @@
         <div class="tabs">
           <button class="tab active" onclick="switchView('week',this)">Tuần</button>
           <button class="tab" onclick="switchView('month',this)">Tháng</button>
-          <button class="tab" id="tabByShift" onclick="switchView('shift',this)" style="display:none;">Theo Ca</button>
+          <button class="tab" id="tabByShift" onclick="switchView('shift',this)">Theo Ca</button>
         </div>
       </div>
       <div id="shiftViewControls" style="display:none;padding:10px 18px;border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -729,7 +729,6 @@ function updateAdminBtn(){
   const btn=document.getElementById('adminBtn');
   const banner=document.getElementById('adminBanner');
   const otCard=document.getElementById('otCard');
-  const tabByShift=document.getElementById('tabByShift');
   if(!btn)return;
   if(isAdmin){
     btn.textContent='🔓 Quản lý (đang mở)';
@@ -737,20 +736,12 @@ function updateAdminBtn(){
     btn.title='Bấm để khoá lại (chỉ xem D+2)';
     if(banner)banner.style.display='block';
     if(otCard)otCard.style.display='block';
-    if(tabByShift)tabByShift.style.display='inline-block';
   }else{
     btn.textContent='🔒 Quản lý';
     btn.classList.remove('active');
     btn.title='Đăng nhập để xem lịch đầy đủ';
     if(banner)banner.style.display='none';
     if(otCard)otCard.style.display='none';
-    if(tabByShift)tabByShift.style.display='none';
-    // Nếu đang ở view "Theo Ca" mà bị khoá quyền Quản lý -> tự chuyển về Tuần
-    if(currentView==='shift'){
-      currentView='week';
-      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-      document.querySelector('.tab[onclick*="\'week\'"]')?.classList.add('active');
-    }
   }
 }
 function onAdminBtnClick(){
@@ -1086,7 +1077,6 @@ function renderSchedule(){
     const ds=fmtDate(r.date);
     return ds>=wsDStr&&ds<=weDStr;
   });
-  if(currentView==='shift'&&!isAdmin)currentView='week';
   const shiftControls=document.getElementById('shiftViewControls');
   if(currentView!=='shift'&&shiftControls)shiftControls.style.display='none';
   if(currentView==='week')renderWeekView(days,weekR);
