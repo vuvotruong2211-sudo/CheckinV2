@@ -520,6 +520,18 @@
           <button class="tab" id="tabByShift" onclick="switchView('shift',this)" style="display:none;">Theo Ca</button>
         </div>
       </div>
+      <div id="shiftViewControls" style="display:none;padding:10px 18px;border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="tab" id="shiftSpan1" onclick="setShiftSpan(1)" style="font-size:11px;padding:6px 10px;">1 ngày</button>
+          <button type="button" class="tab" id="shiftSpan3" onclick="setShiftSpan(3)" style="font-size:11px;padding:6px 10px;">3 ngày</button>
+          <button type="button" class="tab active" id="shiftSpan7" onclick="setShiftSpan(7)" style="font-size:11px;padding:6px 10px;">Cả tuần</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" class="admin-btn" onclick="shiftSpanNav(-1)" style="padding:6px 10px;">◀</button>
+          <div id="shiftSpanLabel" style="font-size:12px;font-weight:600;min-width:120px;text-align:center;">—</div>
+          <button type="button" class="admin-btn" onclick="shiftSpanNav(1)" style="padding:6px 10px;">▶</button>
+        </div>
+      </div>
       <div class="table-scroll">
         <table class="schedule-table">
           <thead id="scheduleHead"></thead>
@@ -1075,6 +1087,8 @@ function renderSchedule(){
     return ds>=wsDStr&&ds<=weDStr;
   });
   if(currentView==='shift'&&!isAdmin)currentView='week';
+  const shiftControls=document.getElementById('shiftViewControls');
+  if(currentView!=='shift'&&shiftControls)shiftControls.style.display='none';
   if(currentView==='week')renderWeekView(days,weekR);
   else if(currentView==='shift')renderShiftView(days,weekR);
   else renderMonthView();
@@ -1130,23 +1144,61 @@ function renderWeekView(days,weekRows){
 // SHIFT VIEW (Lịch theo Ca) - mỗi dòng là 1 loại ca, ô liệt kê tên NV
 // ============================================================
 const SHIFT_ORDER=['Ca Sáng','Ca Lỡ','Ca Tối','Trực đêm','OFF'];
-function renderShiftView(days,weekRows){
+let shiftSpan=7; // số ngày hiển thị cùng lúc: 1, 3 hoặc 7
+let shiftAnchorDate=null; // ngày đầu của block đang xem (null = đồng bộ theo currentWeekStart)
+
+function setShiftSpan(n){
+  shiftSpan=n;
+  ['1','3','7'].forEach(s=>document.getElementById('shiftSpan'+s)?.classList.remove('active'));
+  document.getElementById('shiftSpan'+n)?.classList.add('active');
+  shiftAnchorDate=currentWeekStart; // reset về đầu tuần hiện hành khi đổi độ rộng
+  renderSchedule();
+}
+function shiftSpanNav(dir){
+  const base=shiftAnchorDate||currentWeekStart;
+  shiftAnchorDate=addDays(base,dir*shiftSpan);
+  renderSchedule();
+}
+
+function renderShiftView(weekDays,weekRowsFull){
   const head=document.getElementById('scheduleHead');
   const body=document.getElementById('scheduleBody');
   const empty=document.getElementById('scheduleEmpty');
+  const controls=document.getElementById('shiftViewControls');
+  if(controls)controls.style.display='flex';
+
   const thu=['T2','T3','T4','T5','T6','T7','CN'];
   const today=fmtDate(new Date());
 
-  head.innerHTML=`<tr><th style="min-width:90px;">Loại ca</th>${days.map((d,i)=>`<th class="day-col"><div class="day-header">${thu[i]}</div><div class="day-date">${fmtDisp(d)}</div></th>`).join('')}</tr>`;
+  // Block ngày đang xem: bắt đầu từ shiftAnchorDate (mặc định = đầu tuần), dài shiftSpan ngày
+  if(!shiftAnchorDate)shiftAnchorDate=currentWeekStart;
+  const days=Array.from({length:shiftSpan},(_,i)=>addDays(shiftAnchorDate,i));
+  const wsDStr=fmtDate(days[0]),weDStr=fmtDate(days[days.length-1]);
+  const weekRows=filteredData.filter(r=>{
+    if(!r.date)return false;
+    const ds=fmtDate(r.date);
+    return ds>=wsDStr&&ds<=weDStr;
+  });
+
+  const label=document.getElementById('shiftSpanLabel');
+  if(label)label.textContent=shiftSpan===1?fmtDisp(days[0]):(fmtDisp(days[0])+' → '+fmtDisp(days[days.length-1]));
+
+  // map sang index thứ trong tuần (T2=0...CN=6) để lấy đúng tên thứ
+  const thuOf=(d)=>{const jsDay=d.getDay();return jsDay===0?6:jsDay-1;};
+
+  head.innerHTML=`<tr><th style="min-width:90px;">Loại ca</th>${days.map(d=>`<th class="day-col"><div class="day-header">${thu[thuOf(d)]}</div><div class="day-date">${fmtDisp(d)}</div></th>`).join('')}</tr>`;
 
   if(!weekRows.length){body.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
 
-  // Gom các loại ca thực tế xuất hiện trong tuần, giữ đúng thứ tự chuẩn,
+  // Gom các loại ca thực tế xuất hiện trong khoảng đang xem, giữ đúng thứ tự chuẩn,
   // và thêm vào cuối nếu sheet có loại ca lạ không nằm trong SHIFT_ORDER
   const presentShifts=[...new Set(weekRows.map(r=>r.loaiCa).filter(Boolean))];
   const shiftsToShow=[...SHIFT_ORDER.filter(s=>presentShifts.includes(s)),
                        ...presentShifts.filter(s=>!SHIFT_ORDER.includes(s))];
+
+  // Cột rộng hơn khi xem ít ngày để tận dụng không gian, hẹp lại khi xem cả tuần để vẫn fit màn hình
+  const ganttWidth=shiftSpan===1?420:(shiftSpan===3?280:200);
 
   body.innerHTML=shiftsToShow.map(shift=>{
     const cls=getLoaiCaClass(shift);
@@ -1175,12 +1227,12 @@ function renderShiftView(days,weekRows){
           </div>
         </td>`;
       }
-      return`<td style="${bg}vertical-align:top;padding:4px 6px;">${renderGanttCell(rowsHere,shift)}</td>`;
+      return`<td style="${bg}vertical-align:top;padding:4px 6px;">${renderGanttCell(rowsHere,shift,ganttWidth)}</td>`;
     }).join('');
     const countTotal=weekRows.filter(r=>r.loaiCa===shift).length;
     return`<tr><td>
         <span class="ca-badge ${cls}" style="font-size:10px;">${shift}</span>
-        <div style="font-size:9px;color:var(--text3);margin-top:4px;">${countTotal} lượt/tuần</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:4px;">${countTotal} lượt</div>
       </td>${cells}</tr>`;
   }).join('');
 }
@@ -1188,8 +1240,8 @@ function renderShiftView(days,weekRows){
 const SHIFT_COLOR_VAR={'Ca Sáng':'--ca-sang','Ca Tối':'--ca-toi','Ca Lỡ':'--ca-lo','Trực đêm':'--truc-dem','OFF':'--off'};
 
 // Mini-Gantt: vẽ timeline 0h-24h, mỗi NV 1 thanh ngang đặt đúng vị trí giờ làm
-const GANTT_W=220; // px, chiều rộng vùng trục giờ trong mỗi ô
-function renderGanttCell(rowsHere,shift){
+function renderGanttCell(rowsHere,shift,width){
+  const w=width||220;
   const barColor=`var(${SHIFT_COLOR_VAR[shift]||'--accent'})`;
   const axisTicks=[0,6,12,18,24];
   const axis=`<div style="position:relative;height:10px;margin-bottom:3px;">
@@ -1215,7 +1267,7 @@ function renderGanttCell(rowsHere,shift){
     </div>`;
   }).join('');
 
-  return`<div style="min-width:${GANTT_W}px;">
+  return`<div style="min-width:${w}px;">
     ${axis}
     <div style="position:relative;">
       ${grid}
@@ -1657,8 +1709,8 @@ function renderOffYearTable(){
 }
 
 
-function changeWeek(d){currentWeekStart=addDays(currentWeekStart,d*7);renderAll();}
-function goToday(){currentWeekStart=getWeekStart(new Date());renderAll();}
+function changeWeek(d){currentWeekStart=addDays(currentWeekStart,d*7);shiftAnchorDate=null;renderAll();}
+function goToday(){currentWeekStart=getWeekStart(new Date());shiftAnchorDate=null;renderAll();}
 function updateWeekLabel(){
   const ws=currentWeekStart,we=addDays(ws,6);
   const lbl=fmtDisp(ws)+' – '+fmtDisp(we)+'/'+we.getFullYear();
