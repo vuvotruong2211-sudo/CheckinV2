@@ -1614,9 +1614,10 @@ function renderPayrollContent(data, nv, m, y){
 
   const truItems=[
     ['Bảo hiểm XH', pick('Bảo hiểm XH','Cộng BH')],
+    ['Tạm ứng', pick('Tạm ứng')],
     ['Đi trễ/về sớm', pick('Đi trễ/về sớm')],
     ['Phạt', pick('Phạt')],
-    ['Tạm ứng', pick('Tạm ứng')],
+    ['Truy thu', pick('Truy thu')],
   ];
 
   // Ưu tiên lấy số Tổng CỘNG đã tính sẵn trong Sheet (nếu có), fallback tự cộng dồn
@@ -1625,10 +1626,10 @@ function renderPayrollContent(data, nv, m, y){
     ? (parseFloat(tongCongSheet)||0)
     : congItems.reduce((s,[,v])=>s+(parseFloat(v)||0),0);
 
-  // >>> SỬA: Tổng các khoản giảm trừ LUÔN tự cộng dồn từ đúng 4 dòng hiển thị
-  // (Cộng BH/Bảo hiểm XH + Đi trễ/về sớm + Phạt + Tạm ứng), KHÔNG lấy theo cột Tổng
-  // có sẵn trong Sheet nữa — vì cột đó có thể được tính thiếu 1 trong 4 khoản,
-  // dẫn tới số "Tổng trừ" hiển thị không khớp với các dòng liệt kê bên trên.
+  // Tổng các khoản giảm trừ LUÔN tự cộng dồn từ đúng 5 dòng hiển thị
+  // (Bảo hiểm XH/Cộng BH + Tạm ứng + Đi trễ/về sớm + Phạt + Truy thu),
+  // KHÔNG lấy theo cột Tổng có sẵn trong Sheet — vì cột đó có thể tính thiếu
+  // 1 trong 5 khoản, dẫn tới số "Tổng trừ" hiển thị không khớp với các dòng liệt kê bên trên.
   const tongTru=truItems.reduce((s,[,v])=>s+Math.abs(parseFloat(v)||0),0);
 
   const thucLanhRaw=pick('Thực lãnh','LƯƠNG THỰC LÃNH');
