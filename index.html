@@ -707,7 +707,7 @@
     🔓 Đang đăng nhập với quyền Quản lý — xem được lịch đầy đủ tất cả văn phòng, không giới hạn ngày.
   </div>
   <div id="userOfficeBanner" style="display:none;background:rgba(79,110,247,.1);border:1px solid var(--accent);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:var(--accent);font-weight:600;">
-    👤 Bạn đang xem lịch của văn phòng <span id="userOfficeBannerText"></span> — chỉ xem được tới D+2.
+    👤 Bạn đang xem lịch của tất cả các phòng vé — chỉ xem được tới D+2.
   </div>
 
   <!-- FILTERS -->
@@ -1115,7 +1115,6 @@ function updateUserBadge(){
   const badgeText=document.getElementById('userBadgeText');
   const banner=document.getElementById('adminBanner');
   const officeBanner=document.getElementById('userOfficeBanner');
-  const officeBannerText=document.getElementById('userOfficeBannerText');
   const otCard=document.getElementById('otCard');
   const officeSelect=document.getElementById('filterOffice');
 
@@ -1136,13 +1135,14 @@ function updateUserBadge(){
     if(banner)banner.style.display='block';
     if(officeBanner)officeBanner.style.display='none';
     if(otCard)otCard.style.display='block';
-    if(officeSelect)officeSelect.disabled=false;
   }else{
     if(banner)banner.style.display='none';
-    if(officeBanner){officeBanner.style.display='block';officeBannerText.textContent=currentUser.boPhan||'(chưa rõ)';}
+    if(officeBanner)officeBanner.style.display='block';
     if(otCard)otCard.style.display='none';
-    if(officeSelect)officeSelect.disabled=true;
   }
+  // Dropdown "Văn phòng" luôn mở cho mọi người — NV thường cũng xem được lịch toàn bộ phòng vé,
+  // không còn bị ép cứng/khoá chỉ xem đúng văn phòng của mình.
+  if(officeSelect)officeSelect.disabled=false;
 }
 
 // Enter để submit passcode đăng nhập
@@ -1414,27 +1414,14 @@ function applyFilters(){
     return;
   }
 
-  let office=document.getElementById('filterOffice').value;
+  const office=document.getElementById('filterOffice').value;
   const ca=document.getElementById('filterCa').value;
   const month=document.getElementById('filterMonth').value;
 
-  // NV thường: ép cứng theo văn phòng cố định của mình, bất kể dropdown chọn gì
-  if(!currentUser.isManager){
-    office=currentUser.boPhan||'__NONE__';
-  }
-
+  // Không giới hạn theo Văn phòng nữa: NV thường lẫn Quản lý đều xem được lịch của
+  // TOÀN BỘ các phòng vé, dropdown "Văn phòng" chỉ là bộ lọc tự do (mặc định "Tất cả").
   filteredData=allData.filter(r=>{
-    if(!currentUser.isManager){
-      // NV thường: hiện lịch nếu (a) cùng Văn phòng cố định của họ (để xem đồng nghiệp/phối hợp ca),
-      // HOẶC (b) là lịch của CHÍNH họ dù hôm đó bị điều chuyển sang Văn phòng khác.
-      // Tránh trường hợp NV không tự xem được lịch của mình trong những ngày bị điều chuyển.
-      const cungVanPhongCoDinh=office&&office!=='__NONE__'&&r.boPhan===office;
-      const laLichCuaChinhMinh=normKey(r.nv)===normKey(currentUser.nv);
-      if(!cungVanPhongCoDinh&&!laLichCuaChinhMinh)return false;
-    }else{
-      if(office&&office!=='__NONE__'&&r.boPhan!==office)return false;
-      if(office==='__NONE__')return false; // chưa xác định được VP -> không hiện gì để an toàn
-    }
+    if(office&&r.boPhan!==office)return false;
     if(selectedNVs.length>0&&!selectedNVs.includes(r.nv))return false;
     if(ca&&r.loaiCa!==ca)return false;
     if(month&&r.thang!==parseInt(month))return false;
