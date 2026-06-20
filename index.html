@@ -714,9 +714,19 @@
   <div class="filters">
     <div class="filter-group">
       <span class="filter-label">Văn phòng:</span>
-      <select class="filter-select" id="filterOffice" onchange="applyFilters()">
-        <option value="">Tất cả</option>
-      </select>
+      <div class="ms-wrap" id="officeMsWrap">
+        <div class="ms-trigger" id="officeMsTrigger" onclick="toggleOfficePanel()">
+          <span id="officeMsLabel">Tất cả</span>
+          <span style="font-size:10px;">▾</span>
+        </div>
+        <div class="ms-panel" id="officeMsPanel">
+          <div class="ms-actions">
+            <button onclick="officeSelectAll()">Chọn tất cả</button>
+            <button onclick="officeClearAll()">Bỏ chọn</button>
+          </div>
+          <div id="officeMsItems"></div>
+        </div>
+      </div>
     </div>
     <div class="filter-group">
       <span class="filter-label">Nhân viên:</span>
@@ -975,6 +985,7 @@ let filteredData = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentView = 'week';
 let selectedNVs = []; // [] = tất cả
+let selectedOffices = []; // [] = tất cả văn phòng
 
 // ============================================================
 // THEME (sáng/tối)
@@ -1093,7 +1104,7 @@ async function submitLoginSchedule(){
     try{localStorage.setItem('llv_user',JSON.stringify(currentUser));}catch(e){}
     hideLoginGate();
     updateUserBadge();
-    populateFilters(); // đồng bộ lại filterOffice.value theo VP vừa đăng nhập
+    populateFilters(); // đồng bộ lại danh sách Văn phòng/NV trong filter sau khi đăng nhập
     applyFilters();
   }catch(e){
     errEl.textContent='Lỗi: '+e.message+' (có thể passcode sai)';
@@ -1116,7 +1127,6 @@ function updateUserBadge(){
   const banner=document.getElementById('adminBanner');
   const officeBanner=document.getElementById('userOfficeBanner');
   const otCard=document.getElementById('otCard');
-  const officeSelect=document.getElementById('filterOffice');
 
   if(!currentUser){
     if(badge)badge.style.display='none';
@@ -1140,9 +1150,6 @@ function updateUserBadge(){
     if(officeBanner)officeBanner.style.display='block';
     if(otCard)otCard.style.display='none';
   }
-  // Dropdown "Văn phòng" luôn mở cho mọi người — NV thường cũng xem được lịch toàn bộ phòng vé,
-  // không còn bị ép cứng/khoá chỉ xem đúng văn phòng của mình.
-  if(officeSelect)officeSelect.disabled=false;
 }
 
 // Enter để submit passcode đăng nhập
@@ -1329,17 +1336,16 @@ function populateFilters(){
   const nvs=[...new Set(allData.map(r=>r.nv))].sort();
   const months=[...new Set(allData.map(r=>r.thang).filter(Boolean))].sort((a,b)=>a-b);
 
-  const os=document.getElementById('filterOffice');
-  os.innerHTML='<option value="">Tất cả văn phòng</option>';
-  offices.forEach(o=>os.innerHTML+=`<option value="${o}">${shortOffice(o)}</option>`);
-
-  // NV thường đã đăng nhập: tự chọn đúng VP của mình và khóa dropdown
-  if(currentUser&&!currentUser.isManager){
-    os.value=currentUser.boPhan||'';
-    os.disabled=true;
-  }else{
-    os.disabled=false;
-  }
+  // Multi-select Văn phòng — mọi người (NV thường lẫn Quản lý) đều chọn tự do,
+  // không còn ép cứng/khoá theo Văn phòng cố định của người đăng nhập, và có thể
+  // chọn nhiều văn phòng cùng lúc để so sánh lịch làm việc.
+  const officeItems=document.getElementById('officeMsItems');
+  officeItems.innerHTML=offices.map(o=>`
+    <label class="ms-item">
+      <input type="checkbox" value="${o}" ${selectedOffices.includes(o)?'checked':''} onchange="onOfficeCheck(this)">
+      <span>${shortOffice(o)}</span>
+    </label>`).join('');
+  updateOfficeLabel();
 
   // Multi-select NV
   const nvItems=document.getElementById('nvMsItems');
@@ -1406,6 +1412,54 @@ function updateNvLabel(){
   }
 }
 
+// ============================================================
+// MULTI-SELECT VĂN PHÒNG
+// ============================================================
+function toggleOfficePanel(){
+  document.getElementById('officeMsPanel').classList.toggle('open');
+  document.getElementById('officeMsTrigger').classList.toggle('open');
+}
+document.addEventListener('click',(e)=>{
+  const wrap=document.getElementById('officeMsWrap');
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById('officeMsPanel')?.classList.remove('open');
+    document.getElementById('officeMsTrigger')?.classList.remove('open');
+  }
+});
+function onOfficeCheck(cb){
+  if(cb.checked){
+    if(!selectedOffices.includes(cb.value))selectedOffices.push(cb.value);
+  }else{
+    selectedOffices=selectedOffices.filter(v=>v!==cb.value);
+  }
+  updateOfficeLabel();
+  applyFilters();
+}
+function officeSelectAll(){
+  const all=[...new Set(allData.map(r=>r.boPhan).filter(o=>o&&o!=='OFF'))].sort();
+  selectedOffices=[...all];
+  document.querySelectorAll('#officeMsItems input').forEach(cb=>cb.checked=true);
+  updateOfficeLabel();
+  applyFilters();
+}
+function officeClearAll(){
+  selectedOffices=[];
+  document.querySelectorAll('#officeMsItems input').forEach(cb=>cb.checked=false);
+  updateOfficeLabel();
+  applyFilters();
+}
+function updateOfficeLabel(){
+  const lbl=document.getElementById('officeMsLabel');
+  if(!lbl)return;
+  if(selectedOffices.length===0){
+    lbl.textContent='Tất cả';
+  }else if(selectedOffices.length===1){
+    lbl.textContent=shortOffice(selectedOffices[0]);
+  }else{
+    lbl.innerHTML=selectedOffices.length+' đã chọn <span class="ms-count">'+selectedOffices.length+'</span>';
+  }
+}
+
 function applyFilters(){
   // Chưa đăng nhập -> không hiển thị bất kỳ dữ liệu nào (gate đăng nhập đang che UI, đây là lớp bảo vệ thứ 2)
   if(!currentUser){
@@ -1414,14 +1468,14 @@ function applyFilters(){
     return;
   }
 
-  const office=document.getElementById('filterOffice').value;
   const ca=document.getElementById('filterCa').value;
   const month=document.getElementById('filterMonth').value;
 
   // Không giới hạn theo Văn phòng nữa: NV thường lẫn Quản lý đều xem được lịch của
-  // TOÀN BỘ các phòng vé, dropdown "Văn phòng" chỉ là bộ lọc tự do (mặc định "Tất cả").
+  // TOÀN BỘ các phòng vé. Multi-select Văn phòng chỉ là bộ lọc tự do (mặc định "Tất cả",
+  // có thể chọn nhiều văn phòng cùng lúc để so sánh).
   filteredData=allData.filter(r=>{
-    if(office&&r.boPhan!==office)return false;
+    if(selectedOffices.length>0&&!selectedOffices.includes(r.boPhan))return false;
     if(selectedNVs.length>0&&!selectedNVs.includes(r.nv))return false;
     if(ca&&r.loaiCa!==ca)return false;
     if(month&&r.thang!==parseInt(month))return false;
