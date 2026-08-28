@@ -627,10 +627,12 @@ function updateTierUI(){
 $('#proUnlockBtn').addEventListener('click', ()=>{
   const code = $('#proCodeInput').value.trim();
   if(!code){ return; }
-  $('#proMsg').textContent = 'Đang kiểm tra…';
+  $('#proUnlockBtn').disabled = true;
+  $('#proMsg').textContent = 'Đang kiểm tra mã…';
   $('#proMsg').className = 'pro-msg';
   google.script.run
     .withSuccessHandler(function(result){
+      $('#proUnlockBtn').disabled = false;
       if(result && result.tier === 'pro'){
         TIER = 'pro';
         PRO_NAME = result.proName || null;
@@ -650,6 +652,7 @@ $('#proUnlockBtn').addEventListener('click', ()=>{
       }
     })
     .withFailureHandler(function(err){
+      $('#proUnlockBtn').disabled = false;
       $('#proMsg').textContent = 'Lỗi: ' + (err && err.message ? err.message : err);
       $('#proMsg').className = 'pro-msg err';
     })
