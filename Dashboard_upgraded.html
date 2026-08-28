@@ -282,7 +282,7 @@
     <div class="section">
       <div class="section-head">
         <h3><span class="num">01</span> Xu hướng doanh thu theo ngày</h3>
-        <span class="hint">theo Tuyến đã lọc ở trên</span>
+        <span class="hint">Nét liền = thực thu (đã TT) · Nét đứt = cộng thêm đặt chỗ chưa thu tiền (chỉ bản Pro)</span>
       </div>
       <div class="card"><canvas id="trendChart" height="80"></canvas></div>
     </div>
@@ -428,7 +428,9 @@
                 <thead><tr><th>Khoản mục chi phí</th><th class="num">Số tiền</th><th class="num">Tỷ trọng</th></tr></thead>
                 <tbody></tbody>
               </table>
-              <canvas id="costBreakdownChart" height="220"></canvas>
+              <div style="position:relative; height:260px; max-width:320px; margin:0 auto;">
+                <canvas id="costBreakdownChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -840,12 +842,13 @@ function render(){
   const sold = filtered.filter(r=>r.trangThai!=='Hủy');
   const cancelled = filtered.filter(r=>r.trangThai==='Hủy');
   const pending = filtered.filter(r=>r.trangThai==='Đặt chỗ');
-  const revenue = filtered.reduce((s,r)=>s+r.thanhTien,0);
+  const paidOnly = filtered.filter(r=>r.trangThai==='Đã thanh toán');
+  const revenue = paidOnly.reduce((s,r)=>s+r.thanhTien,0);
 
   $('#kpiTotalTickets').textContent = fmtInt(sold.length);
   $('#kpiTicketsSub').textContent = from&&to ? `${from.toLocaleDateString('vi-VN')} → ${to.toLocaleDateString('vi-VN')}` : 'toàn bộ dữ liệu';
   $('#kpiRevenue').textContent = fmtVND(revenue);
-  $('#kpiAvg').textContent = fmtVND(sold.length? revenue/sold.length : 0);
+  $('#kpiAvg').textContent = fmtVND(paidOnly.length? revenue/paidOnly.length : 0);
 
   if(tierIsPro()){
     const cancelRate = filtered.length ? cancelled.length/filtered.length : 0;
@@ -998,7 +1001,7 @@ function renderCostBreakdown(){
   charts.costBreakdown = new Chart($('#costBreakdownChart'), {
     type:'doughnut',
     data:{ labels: catRows.map(r=>r.cat), datasets:[{ data: catRows.map(r=>r.v), backgroundColor: COLORS.palette, borderColor:'#121A2B', borderWidth:3 }]},
-    options:{ plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:12, padding:12, font:{size:11}}}, tooltip:{callbacks:{label:(c)=> ' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} }
+    options:{ maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:12, padding:12, font:{size:11}}}, tooltip:{callbacks:{label:(c)=> ' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} }
   });
 }
 
@@ -1050,6 +1053,8 @@ function renderFuelTable(filtered){
     return;
   }
 
+  const MIN_TRIPS = 3; // xe chạy quá ít chuyến trong kỳ lọc thì tỷ lệ lít/100km không đáng tin, loại khỏi TB đội xe & khỏi so sánh
+
   // số chuyến thực tế theo xe (đếm distinct Xe+Ngày đi+Chuyến) trong khoảng lọc + tuyến đang chọn
   const tripSeen = new Set();
   const tripKmByXe = new Map();
@@ -1077,19 +1082,25 @@ function renderFuelTable(filtered){
   let rows = allXe.map(xe=>{
     const km = tripKmByXe.get(xe) || 0;
     const lit = litByXe.get(xe) || 0;
+    const trips = tripCountByXe.get(xe) || 0;
     const per100 = km ? lit/(km/100) : null;
-    return { xe, trips: tripCountByXe.get(xe)||0, km, lit, per100 };
+    const reliable = trips >= MIN_TRIPS && km > 0;
+    return { xe, trips, km, lit, per100, reliable };
   });
 
-  const valid = rows.filter(r=>r.per100!=null);
-  const fleetAvg = valid.length ? valid.reduce((s,r)=>s+r.per100,0)/valid.length : null;
+  // TB đội xe = tổng lít / tổng km của các xe đủ tin cậy (weighted theo quãng đường thực chạy,
+  // không lấy trung bình cộng của từng tỷ lệ — tránh xe chạy 1-2 chuyến kéo lệch TB chung)
+  const reliableRows = rows.filter(r=>r.reliable);
+  const totalKmReliable = reliableRows.reduce((s,r)=>s+r.km,0);
+  const totalLitReliable = reliableRows.reduce((s,r)=>s+r.lit,0);
+  const fleetAvg = totalKmReliable ? totalLitReliable/(totalKmReliable/100) : null;
 
   rows = rows.sort((a,b)=> (b.per100||0)-(a.per100||0));
 
   const tbody = $('#fuelTable tbody');
   tbody.innerHTML = rows.map(r=>{
-    let assessment = '<span class="hint">Chưa đủ dữ liệu</span>';
-    if(r.per100!=null && fleetAvg){
+    let assessment = `<span class="hint">Chỉ ${r.trips} chuyến — chưa đủ dữ liệu</span>`;
+    if(r.reliable && r.per100!=null && fleetAvg){
       const diff = (r.per100-fleetAvg)/fleetAvg;
       if(diff > 0.15) assessment = '<span class="tag other" style="background:rgba(251,113,133,0.14); color:var(--danger);">Cao bất thường</span>';
       else if(diff < -0.15) assessment = '<span class="tag other" style="background:rgba(94,234,212,0.14); color:var(--teal);">Thấp bất thường</span>';
@@ -1106,7 +1117,7 @@ function renderFuelTable(filtered){
   }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu trong khoảng lọc</td></tr>';
 
   $('#fuelNote').textContent = fleetAvg
-    ? `Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với trung bình đội xe.`
+    ? `Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km (tính trên tổng lít ÷ tổng km của ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến trong kỳ lọc) · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Xe chạy <${MIN_TRIPS} chuyến không đủ tin cậy để so sánh nên không gắn nhãn.`
     : '';
 }
 
@@ -1115,19 +1126,39 @@ function destroy(key){ if(charts[key]){ charts[key].destroy(); delete charts[key
 function renderTrend(from,to){
   const routeMatch = (t)=> currentRoute==='__all' || t===currentRoute;
   const data = RAW.filter(r=>routeMatch(r.tuyen) && inRange(r.ngayDi, from, to) && r.trangThai!=='Hủy');
-  const map = new Map();
-  data.forEach(r=>{ const key = r.ngayDi.toISOString().slice(0,10); map.set(key, (map.get(key)||0)+r.thanhTien); });
-  const labels = Array.from(map.keys()).sort();
-  const values = labels.map(l=>map.get(l));
+
+  const paidMap = new Map();
+  const totalMap = new Map();
+  data.forEach(r=>{
+    const key = r.ngayDi.toISOString().slice(0,10);
+    totalMap.set(key, (totalMap.get(key)||0)+r.thanhTien);
+    if(r.trangThai==='Đã thanh toán') paidMap.set(key, (paidMap.get(key)||0)+r.thanhTien);
+  });
+  const labels = Array.from(new Set([...paidMap.keys(), ...totalMap.keys()])).sort();
+  const paidValues = labels.map(l=>paidMap.get(l)||0);
+  const totalValues = labels.map(l=>totalMap.get(l)||0);
   const labelsFmt = labels.map(l=>{ const d=new Date(l); return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}); });
+
+  const datasets = [{
+    label:'Doanh thu thực thu (đã TT)', data: paidValues,
+    borderColor: COLORS.amber, backgroundColor:'rgba(242,183,5,0.12)',
+    fill:true, tension:0.3, pointRadius:2, pointHoverRadius:5, borderWidth:2
+  }];
+  if(tierIsPro()){
+    datasets.push({
+      label:'Tổng gồm đặt chỗ (chưa thu tiền)', data: totalValues,
+      borderColor: COLORS.teal, backgroundColor:'transparent',
+      borderDash:[5,4], fill:false, tension:0.3, pointRadius:2, pointHoverRadius:5, borderWidth:2
+    });
+  }
 
   destroy('trend');
   charts.trend = new Chart($('#trendChart'), {
     type:'line',
-    data:{ labels:labelsFmt, datasets:[{ label:'Doanh thu', data: values, borderColor: COLORS.amber, backgroundColor:'rgba(242,183,5,0.12)', fill:true, tension:0.3, pointRadius:2, pointHoverRadius:5, borderWidth:2 }]},
+    data:{ labels:labelsFmt, datasets },
     options:{
       responsive:true,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c)=>' '+fmtVND(c.parsed.y)+' đ'}}},
+      plugins:{legend:{display: tierIsPro(), labels:{color:COLORS.textlo}}, tooltip:{callbacks:{label:(c)=>' '+c.dataset.label+': '+fmtVND(c.parsed.y)+' đ'}}},
       scales:{
         x:{ ticks:{color:COLORS.textlo, maxTicksLimit:14}, grid:{color:gridColor()} },
         y:{ ticks:{color:COLORS.textlo, callback:(v)=>(v/1e6).toFixed(0)+'tr'}, grid:{color:gridColor()} }
