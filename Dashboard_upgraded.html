@@ -177,6 +177,8 @@
   .tier-label{font-size:11px; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px;}
   .tier-count{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px;}
   .tier-revenue{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-lo); margin-top:4px;}
+  #costBreakdownKpis{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:700px){#costBreakdownKpis{grid-template-columns:repeat(2,1fr);}}
   .row-detail-btn{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:5px 10px; border-radius:7px; font-size:11.5px; cursor:pointer; font-family:'Inter',sans-serif; }
   .row-detail-btn:hover{border-color:var(--amber); color:var(--amber);}
 </style>
@@ -343,7 +345,7 @@
     </div>
 
     <div id="vehicleDetailOverlay" class="modal-overlay">
-      <div class="modal-box wide">
+      <div class="modal-box wide" style="width:760px;">
         <div class="modal-head">
           <h4>Chi tiết vận hành — <span id="vehicleDetailPlate" class="mono"></span></h4>
           <button class="modal-close" id="vehicleDetailClose">✕</button>
@@ -355,6 +357,21 @@
             <thead><tr><th>Trạng thái</th><th class="num">Số vé</th><th class="num">Doanh thu</th><th class="num">Tỷ trọng</th></tr></thead>
             <tbody></tbody>
           </table>
+
+          <div id="vehicleDetailCostSection" style="display:none; margin-top:24px; padding-top:20px; border-top:1px solid var(--line);">
+            <h4 style="margin-bottom:14px;">💰 Chi phí vận hành xe này</h4>
+            <div class="tier-grid" id="vehicleDetailCostKpis" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;"></div>
+            <div class="grid2" style="display:grid; grid-template-columns:1.3fr 1fr; gap:20px;">
+              <table id="vehicleDetailCostTable">
+                <thead><tr><th>Khoản mục chi phí</th><th class="num">Số tiền</th><th class="num">Tỷ trọng</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div style="position:relative; height:230px; max-width:280px; margin:0 auto;">
+                <canvas id="vehicleDetailCostChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div id="vehicleDetailCostEmpty" class="hint" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">Chưa có chi phí ghi nhận cho xe này trong khoảng ngày đã lọc.</div>
         </div>
       </div>
     </div>
@@ -383,13 +400,17 @@
           <h3><span class="num">04</span> Phân tích chi phí theo biển số xe</h3>
           <div style="display:flex; align-items:center; gap:10px;">
             <span class="hint">Chi tiết từng khoản mục chi phí của 1 xe, theo khoảng ngày đã lọc</span>
-            <input type="text" id="costVehiclePicker" list="costVehicleOptions" placeholder="Nhập/chọn biển số…" style="width:150px;">
-            <datalist id="costVehicleOptions"></datalist>
+            <input type="text" id="costVehicleSearch" placeholder="Tìm biển số…" style="width:120px;">
+            <select id="costVehicleSelect" style="min-width:150px;"><option value="">— Chọn biển số —</option></select>
+            <button class="btn ghost" id="costVehiclePrev" title="Xe trước" style="padding:7px 11px;">‹</button>
+            <button class="btn ghost" id="costVehicleNext" title="Xe sau" style="padding:7px 11px;">›</button>
           </div>
         </div>
         <div class="card">
-          <div id="costBreakdownEmpty" class="hint" style="padding:10px 2px;">Chọn 1 biển số ở ô trên để xem phân tích chi phí chi tiết.</div>
+          <div id="costVehicleQuickPicks" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+          <div id="costBreakdownEmpty" class="hint" style="padding:10px 2px;">Chọn 1 biển số ở trên (hoặc bấm vào 1 xe trong danh sách chi phí cao nhất) để xem phân tích chi tiết.</div>
           <div id="costBreakdownContent" style="display:none;">
+            <div class="hint" id="costVehicleRankHint" style="margin-bottom:10px;"></div>
             <div class="tier-grid" id="costBreakdownKpis" style="margin-bottom:16px;"></div>
             <div class="grid2" style="display:grid; grid-template-columns:1.3fr 1fr; gap:20px;">
               <table id="costBreakdownTable">
@@ -407,7 +428,7 @@
       <div class="section">
         <div class="section-head">
           <h3><span class="num">05</span> Định mức tiêu hao nhiên liệu</h3>
-          <span class="hint">Lít tiêu thụ ÷ km ước tính (số chuyến × quãng đường tuyến) — so với trung bình đội xe</span>
+          <span class="hint">Toàn bộ lịch sử, không đổi theo bộ lọc ngày/tuyến ở trên — so với trung bình đội xe</span>
         </div>
         <div class="card">
           <table id="fuelTable">
@@ -883,7 +904,7 @@ function render(){
 
   if(tierIsPro()){
     renderCostBreakdown();
-    renderFuelTable(filtered);
+    renderFuelTable();
   }
 }
 
@@ -895,19 +916,82 @@ function costsInRange(from, to){
 // ---------- Phân tích chi phí chi tiết theo biển số (Pro) ----------
 function populateCostVehicleOptions(){
   const list = getAllVehicles();
-  $('#costVehicleOptions').innerHTML = list.map(xe=>`<option value="${xe}"></option>`).join('');
+  const sel = $('#costVehicleSelect');
+  sel.innerHTML = '<option value="">— Chọn biển số —</option>' + list.map(xe=>`<option value="${xe}">${xe}</option>`).join('');
   if(currentCostVehicle && !list.includes(currentCostVehicle)) currentCostVehicle = null;
+
+  if(currentCostVehicle === null && list.length){
+    const {from, to} = computeRange(currentPeriod);
+    const totalByXe = new Map();
+    costsInRange(from, to).forEach(r=>{
+      const total = Object.values(r.categories).reduce((s,v)=>s+v, 0);
+      totalByXe.set(r.xe, (totalByXe.get(r.xe)||0) + total);
+    });
+    if(totalByXe.size){
+      currentCostVehicle = Array.from(totalByXe.entries()).sort((a,b)=>b[1]-a[1])[0][0];
+    }
+  }
+  sel.value = currentCostVehicle || '';
+  renderCostVehicleQuickPicks();
 }
-$('#costVehiclePicker').addEventListener('change', (e)=>{
-  const v = e.target.value.trim();
-  const list = getAllVehiclesForProfit();
-  currentCostVehicle = list.includes(v) ? v : (v ? null : null);
+
+function renderCostVehicleQuickPicks(){
+  const {from, to} = computeRange(currentPeriod);
+  const costs = costsInRange(from, to);
+  const totalByXe = new Map();
+  costs.forEach(r=>{
+    const total = Object.values(r.categories).reduce((s,v)=>s+v, 0);
+    totalByXe.set(r.xe, (totalByXe.get(r.xe)||0) + total);
+  });
+  const top5 = Array.from(totalByXe.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const container = $('#costVehicleQuickPicks');
+  if(!top5.length){ container.innerHTML = ''; return; }
+  container.innerHTML = '<span class="hint" style="align-self:center;">🔥 Chi phí cao nhất:</span>' + top5.map(([xe,total])=>
+    `<button class="chip cost-quick-chip ${xe===currentCostVehicle?'active':''}" data-xe="${xe}">${xe} · ${fmtVNDShort(total)}</button>`
+  ).join('');
+  $$('.cost-quick-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectCostVehicle(btn.dataset.xe);
+    });
+  });
+}
+
+function selectCostVehicle(xe){
+  currentCostVehicle = xe || null;
+  $('#costVehicleSelect').value = currentCostVehicle || '';
   renderCostBreakdown();
+  renderCostVehicleQuickPicks();
+}
+
+$('#costVehicleSelect').addEventListener('change', (e)=>{ selectCostVehicle(e.target.value); });
+
+$('#costVehicleSearch').addEventListener('keyup', (e)=>{
+  if(e.key !== 'Enter') return;
+  const q = e.target.value.trim().toLowerCase();
+  if(!q) return;
+  const list = getAllVehicles();
+  const match = list.find(xe=>xe.toLowerCase().includes(q));
+  if(match){ selectCostVehicle(match); e.target.value=''; }
 });
-$('#costVehiclePicker').addEventListener('keyup', (e)=>{ if(e.key==='Enter') $('#costVehiclePicker').dispatchEvent(new Event('change')); });
+
+$('#costVehiclePrev').addEventListener('click', ()=>{
+  const list = getAllVehicles();
+  if(!list.length) return;
+  const idx = currentCostVehicle ? list.indexOf(currentCostVehicle) : -1;
+  const next = list[(idx - 1 + list.length) % list.length];
+  selectCostVehicle(next);
+});
+$('#costVehicleNext').addEventListener('click', ()=>{
+  const list = getAllVehicles();
+  if(!list.length) return;
+  const idx = currentCostVehicle ? list.indexOf(currentCostVehicle) : -1;
+  const next = list[(idx + 1) % list.length];
+  selectCostVehicle(next);
+});
 
 function renderCostBreakdown(){
   if(!tierIsPro()) return;
+  renderCostVehicleQuickPicks();
   const empty = $('#costBreakdownEmpty');
   const content = $('#costBreakdownContent');
   if(!currentCostVehicle){
@@ -919,7 +1003,8 @@ function renderCostBreakdown(){
   content.style.display = 'block';
 
   const {from, to} = computeRange(currentPeriod);
-  const rows = costsInRange(from, to).filter(r=>r.xe===currentCostVehicle);
+  const allCosts = costsInRange(from, to);
+  const rows = allCosts.filter(r=>r.xe===currentCostVehicle);
   const daysWithCost = new Set(rows.map(r=>r.ngay.getTime())).size;
 
   const byCategory = new Map();
@@ -932,13 +1017,30 @@ function renderCostBreakdown(){
     });
   });
 
+  // Xếp hạng xe này trong đội xe theo tổng chi phí (để biết đang cao/thấp so với mặt bằng chung)
+  const totalByXe = new Map();
+  allCosts.forEach(r=>{
+    const total = Object.values(r.categories).reduce((s,v)=>s+v, 0);
+    totalByXe.set(r.xe, (totalByXe.get(r.xe)||0) + total);
+  });
+  const ranked = Array.from(totalByXe.entries()).sort((a,b)=>b[1]-a[1]);
+  const rankIdx = ranked.findIndex(([xe])=>xe===currentCostVehicle);
+  $('#costVehicleRankHint').textContent = rankIdx>=0
+    ? `Hạng ${rankIdx+1}/${ranked.length} về tổng chi phí trong đội xe (khoảng ngày đã lọc)`
+    : '';
+
   const revenue = RAW.filter(r=>r.xe===currentCostVehicle && r.trangThai==='Đã thanh toán' && inRange(r.ngayDi, from, to))
     .reduce((s,r)=>s+r.thanhTien,0);
+  const avgPerDay = daysWithCost ? grandTotal/daysWithCost : 0;
 
   $('#costBreakdownKpis').innerHTML = `
     <div class="tier-card">
       <div class="tier-label">Tổng chi phí</div>
-      <div class="tier-count mono">${fmtVND(grandTotal)} đ</div>
+      <div class="tier-count mono">${fmtVNDShort(grandTotal)} đ</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">TB / ngày phát sinh</div>
+      <div class="tier-count mono">${fmtVNDShort(avgPerDay)} đ</div>
     </div>
     <div class="tier-card">
       <div class="tier-label">Số ngày phát sinh chi phí</div>
@@ -967,8 +1069,7 @@ function renderCostBreakdown(){
 }
 
 // ---------- Định mức tiêu hao nhiên liệu (Pro) ----------
-function renderFuelTable(filtered){
-  const {from, to} = computeRange(currentPeriod);
+function renderFuelTable(){
   const fuelCatName = COST_CATEGORIES.find(c=>c==='Nhiên liệu');
   if(!fuelCatName || !FUEL_PRICE_LOOKUP){
     $('#fuelTable tbody').innerHTML = '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có cột "Nhiên liệu" trong ChiPhi hoặc chưa có dữ liệu GiaNhienLieu</td></tr>';
@@ -976,13 +1077,18 @@ function renderFuelTable(filtered){
     return;
   }
 
-  const MIN_TRIPS = 3; // xe chạy quá ít chuyến trong kỳ lọc thì tỷ lệ lít/100km không đáng tin, loại khỏi TB đội xe & khỏi so sánh
+  const MIN_TRIPS = 5; // xe chạy quá ít chuyến thì tỷ lệ lít/100km không đáng tin, loại khỏi TB đội xe & khỏi so sánh
 
-  // số chuyến thực tế theo xe (đếm distinct Xe+Ngày đi+Chuyến) trong khoảng lọc + tuyến đang chọn
+  // QUAN TRỌNG: mục này KHÔNG dùng theo bộ lọc ngày/tuyến ở trên (currentPeriod/currentRoute).
+  // Lý do: ngày đổ xăng và ngày chạy chuyến không phải lúc nào cũng trùng nhau (đổ 1 lần
+  // chạy được vài chuyến, hoặc đổ trước/sau ngày chạy thực tế) — nếu thu hẹp khung ngày,
+  // km bị chia rất nhỏ trong khi lít mua vẫn rơi trọn vào khung đó, ra tỷ lệ vô nghĩa.
+  // Nên định mức tiêu hao luôn tính trên TOÀN BỘ lịch sử để ra con số ổn định, đáng tin.
   const tripSeen = new Set();
   const tripKmByXe = new Map();
   const tripCountByXe = new Map();
-  filtered.forEach(r=>{
+  RAW.forEach(r=>{
+    if(r.trangThai==='Hủy') return;
     const key = r.xe+'|'+r.ngayDi.getTime()+'|'+r.chuyen;
     if(tripSeen.has(key)) return;
     tripSeen.add(key);
@@ -991,9 +1097,9 @@ function renderFuelTable(filtered){
     tripCountByXe.set(r.xe, (tripCountByXe.get(r.xe)||0) + 1);
   });
 
-  // lít tiêu thụ theo xe, từ chi phí nhiên liệu (VNĐ) / giá theo ngày
+  // lít tiêu thụ theo xe, từ chi phí nhiên liệu (VNĐ) / giá theo ngày — toàn bộ COST_ROWS
   const litByXe = new Map();
-  costsInRange(from, to).forEach(r=>{
+  COST_ROWS.forEach(r=>{
     const vnd = r.categories[fuelCatName] || 0;
     if(!vnd) return;
     const price = FUEL_PRICE_LOOKUP(r.ngay);
@@ -1012,7 +1118,7 @@ function renderFuelTable(filtered){
   });
 
   // TB đội xe = tổng lít / tổng km của các xe đủ tin cậy (weighted theo quãng đường thực chạy,
-  // không lấy trung bình cộng của từng tỷ lệ — tránh xe chạy 1-2 chuyến kéo lệch TB chung)
+  // không lấy trung bình cộng của từng tỷ lệ — tránh xe chạy ít chuyến kéo lệch TB chung)
   const reliableRows = rows.filter(r=>r.reliable);
   const totalKmReliable = reliableRows.reduce((s,r)=>s+r.km,0);
   const totalLitReliable = reliableRows.reduce((s,r)=>s+r.lit,0);
@@ -1037,10 +1143,10 @@ function renderFuelTable(filtered){
       <td class="num mono">${r.per100!=null ? r.per100.toFixed(2) : '—'}</td>
       <td>${assessment}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu trong khoảng lọc</td></tr>';
+  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu</td></tr>';
 
   $('#fuelNote').textContent = fleetAvg
-    ? `Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km (tính trên tổng lít ÷ tổng km của ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến trong kỳ lọc) · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Xe chạy <${MIN_TRIPS} chuyến không đủ tin cậy để so sánh nên không gắn nhãn.`
+    ? `Tính trên TOÀN BỘ dữ liệu (không đổi theo bộ lọc ngày/tuyến ở trên, vì ngày đổ xăng và ngày chạy không trùng nhau) · Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km, dựa trên tổng lít ÷ tổng km của ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Xe chạy <${MIN_TRIPS} chuyến chưa đủ tin cậy nên không gắn nhãn.`
     : '';
 }
 
@@ -1249,8 +1355,80 @@ function openVehicleDetail(xe){
     </tr>`;
   }).join('') || '<tr><td colspan="4" style="color:var(--text-lo)">Không có dữ liệu</td></tr>';
 
+  renderVehicleDetailCost(xe, from, to);
+
   $('#vehicleDetailOverlay').classList.add('open');
 }
+
+function renderVehicleDetailCost(xe, from, to){
+  const costSection = $('#vehicleDetailCostSection');
+  const costEmpty = $('#vehicleDetailCostEmpty');
+  if(!tierIsPro()){
+    costSection.style.display = 'none';
+    costEmpty.style.display = 'none';
+    return;
+  }
+
+  const costRows = costsInRange(from, to).filter(r=>r.xe===xe);
+  const byCategory = new Map();
+  let grandTotal = 0;
+  costRows.forEach(r=>{
+    Object.entries(r.categories).forEach(([cat,v])=>{
+      if(!v) return;
+      byCategory.set(cat, (byCategory.get(cat)||0)+v);
+      grandTotal += v;
+    });
+  });
+
+  if(!grandTotal){
+    costSection.style.display = 'none';
+    costEmpty.style.display = 'block';
+    destroy('vehicleDetailCost');
+    return;
+  }
+  costSection.style.display = 'block';
+  costEmpty.style.display = 'none';
+
+  const daysWithCost = new Set(costRows.map(r=>r.ngay.getTime())).size;
+  const paidRevenue = RAW.filter(r=>r.xe===xe && r.trangThai==='Đã thanh toán' && inRange(r.ngayDi, from, to))
+    .reduce((s,r)=>s+r.thanhTien,0);
+  const profit = paidRevenue - grandTotal;
+  const margin = paidRevenue ? profit/paidRevenue : 0;
+
+  $('#vehicleDetailCostKpis').innerHTML = `
+    <div class="tier-card">
+      <div class="tier-label">Tổng chi phí</div>
+      <div class="tier-count mono">${fmtVNDShort(grandTotal)} đ</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Số ngày phát sinh</div>
+      <div class="tier-count mono">${fmtInt(daysWithCost)}</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Lợi nhuận (thực thu − chi phí)</div>
+      <div class="tier-count mono" style="color:${profit<0?'var(--danger)':'var(--teal)'}">${fmtVNDShort(profit)} đ</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Biên lợi nhuận</div>
+      <div class="tier-count mono" style="color:${margin<0?'var(--danger)':'var(--text-lo)'}">${paidRevenue ? fmtPct(margin) : '—'}</div>
+    </div>`;
+
+  const catRows = Array.from(byCategory.entries()).map(([cat,v])=>({cat, v})).sort((a,b)=>b.v-a.v);
+  $('#vehicleDetailCostTable tbody').innerHTML = catRows.map(r=>`
+    <tr>
+      <td>${r.cat}</td>
+      <td class="num mono">${fmtVND(r.v)}</td>
+      <td class="num mono">${grandTotal ? fmtPct(r.v/grandTotal) : '0%'}</td>
+    </tr>`).join('');
+
+  destroy('vehicleDetailCost');
+  charts.vehicleDetailCost = new Chart($('#vehicleDetailCostChart'), {
+    type:'doughnut',
+    data:{ labels: catRows.map(r=>r.cat), datasets:[{ data: catRows.map(r=>r.v), backgroundColor: COLORS.palette, borderColor:'#121A2B', borderWidth:3 }]},
+    options:{ maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:10, padding:10, font:{size:10}}}, tooltip:{callbacks:{label:(c)=> ' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} }
+  });
+}
+
 function closeVehicleDetail(){ $('#vehicleDetailOverlay').classList.remove('open'); }
 $('#vehicleDetailClose').addEventListener('click', closeVehicleDetail);
 $('#vehicleDetailOverlay').addEventListener('click', (e)=>{ if(e.target.id==='vehicleDetailOverlay') closeVehicleDetail(); });
