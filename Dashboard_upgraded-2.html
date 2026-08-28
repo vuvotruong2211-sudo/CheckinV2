@@ -115,8 +115,9 @@
   select, input[type=date]{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:8px 12px; border-radius:8px; font-size:13px; font-family:'Inter',sans-serif; }
   .spacer{flex:1;}
   #customDates{display:none; align-items:center; gap:8px;}
-  .kpi-strip{ margin-top:22px; display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; }
-  @media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
+  .kpi-strip{ margin-top:22px; display:grid; grid-template-columns:repeat(6, 1fr); gap:14px; }
+  @media(max-width:1300px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
   .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 18px 16px; position:relative; overflow:hidden; }
   .kpi-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--amber); }
   .kpi-card.warn::before{background:var(--danger);}
@@ -275,7 +276,12 @@
       <div class="kpi-card">
         <div class="kpi-label">Đặt chỗ chưa thanh toán</div>
         <div class="kpi-value mono" id="kpiPending">–</div>
-        <div class="kpi-sub">vé — rủi ro bùng vé</div>
+        <div class="kpi-sub" id="kpiPendingSub">VNĐ — rủi ro bùng vé</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tổng (thực thu + đặt chỗ)</div>
+        <div class="kpi-value mono" id="kpiTotalWithPending">–</div>
+        <div class="kpi-sub">VNĐ</div>
       </div>
     </div>
 
@@ -847,6 +853,7 @@ function render(){
   const pending = filtered.filter(r=>r.trangThai==='Đặt chỗ');
   const paidOnly = filtered.filter(r=>r.trangThai==='Đã thanh toán');
   const revenue = paidOnly.reduce((s,r)=>s+r.thanhTien,0);
+  const pendingRevenue = pending.reduce((s,r)=>s+r.thanhTien,0);
 
   $('#kpiTotalTickets').textContent = fmtInt(sold.length);
   $('#kpiTicketsSub').textContent = from&&to ? `${from.toLocaleDateString('vi-VN')} → ${to.toLocaleDateString('vi-VN')}` : 'toàn bộ dữ liệu';
@@ -859,7 +866,11 @@ function render(){
     $('#kpiCancel').className = 'kpi-value mono' + (cancelRate>0.4 ? ' warn':'');
     $('#cardCancel').className = 'kpi-card' + (cancelRate>0.4 ? ' warn':'');
     $('#kpiCancelSub').textContent = `${fmtInt(cancelled.length)} / ${fmtInt(filtered.length)} vé`;
-    $('#kpiPending').textContent = fmtInt(pending.length);
+    $('#kpiPending').textContent = fmtVND(pendingRevenue);
+    $('#kpiPending').className = 'kpi-value mono';
+    $('#kpiPendingSub').textContent = `${fmtInt(pending.length)} vé — rủi ro bùng vé`;
+    $('#kpiTotalWithPending').textContent = fmtVND(revenue + pendingRevenue);
+    $('#kpiTotalWithPending').className = 'kpi-value mono';
   }else{
     $('#kpiCancel').textContent = '—';
     $('#kpiCancel').className = 'kpi-value mono lite-locked';
@@ -867,6 +878,9 @@ function render(){
     $('#kpiCancelSub').textContent = 'Chỉ ở bản Pro';
     $('#kpiPending').textContent = '—';
     $('#kpiPending').className = 'kpi-value mono lite-locked';
+    $('#kpiPendingSub').textContent = 'Chỉ ở bản Pro';
+    $('#kpiTotalWithPending').textContent = '—';
+    $('#kpiTotalWithPending').className = 'kpi-value mono lite-locked';
   }
 
   renderTrend(from,to);
