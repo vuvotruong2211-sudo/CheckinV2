@@ -128,7 +128,19 @@
   #fileInput{display:none;}
   #filename{font-size:12px; color:var(--text-lo); margin-top:14px;}
   #dashboard{display:none;}
-  .filterbar{ margin-top:24px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+  .filterbar{ margin-top:24px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; position:sticky; top:0; z-index:60; box-shadow:0 8px 16px -8px rgba(0,0,0,0.35); }
+  .quicknav{ margin-top:10px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:8px 10px; display:flex; gap:6px; overflow-x:auto; position:sticky; top:76px; z-index:59; box-shadow:0 8px 16px -10px rgba(0,0,0,0.3); scrollbar-width:thin; }
+  .quicknav::-webkit-scrollbar{height:5px;}
+  .quicknav-btn{ display:flex; align-items:center; gap:7px; white-space:nowrap; background:transparent; border:1px solid transparent; color:var(--text-lo); padding:8px 13px; border-radius:9px; font-size:12.5px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .12s; flex-shrink:0; }
+  .quicknav-btn:hover{ background:var(--surface-2); color:var(--text-hi); }
+  .quicknav-btn.active{ background:var(--amber); color:#1a1400; font-weight:600; }
+  .quicknav-btn .ic{font-size:15px; line-height:1;}
+  .quicknav-btn.nav-pro{ display:none; }
+  .section, #secOverview{ scroll-margin-top:150px; }
+  .table-scroll{ max-height:640px; overflow-y:auto; border-radius:10px; }
+  .table-scroll table{ margin:0; }
+  /* Áp dụng chung: MỌI bảng trong dashboard đều giữ dòng tiêu đề cột khi cuộn — không riêng gì mục 02 */
+  table thead th{ position:sticky; top:0; z-index:5; background:var(--surface); box-shadow:0 1px 0 var(--line); }
   .filterbar .label{font-size:11.5px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-lo); margin-right:2px;}
   .chip{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-lo); font-size:13px; padding:7px 13px; border-radius:999px; cursor:pointer; transition:all .12s; font-family:'Inter',sans-serif; }
   .chip:hover{color:var(--text-hi); border-color:#3a476b;}
@@ -170,7 +182,7 @@
   #loadNewBtn{position:fixed; bottom:22px; right:26px; z-index:5;}
   ::-webkit-scrollbar{height:8px; width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
-  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(4,7,15,0.65); z-index:50; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(4,7,15,0.65); z-index:100; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
   .modal-overlay.open{display:flex;}
   .modal-box{ background:var(--surface); border:1px solid var(--line); border-radius:16px; width:480px; max-width:92vw; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
   .modal-box.wide{width:640px;}
@@ -275,7 +287,19 @@
       <select id="routeFilter"><option value="__all">Tất cả tuyến</option></select>
     </div>
 
-    <div class="kpi-strip">
+    <nav class="quicknav" id="quicknav">
+      <button class="quicknav-btn" data-target="secOverview"><span class="ic">📊</span> Tổng quan</button>
+      <button class="quicknav-btn" data-target="sec01"><span class="ic">📈</span> Xu hướng</button>
+      <button class="quicknav-btn" data-target="sec02"><span class="ic">🚌</span> Xe &amp; lợi nhuận</button>
+      <button class="quicknav-btn" data-target="secStaff"><span class="ic">🧑‍✈️</span> Tài xế / NV</button>
+      <button class="quicknav-btn nav-pro" data-target="sec04"><span class="ic">💰</span> Chi phí</button>
+      <button class="quicknav-btn nav-pro" data-target="sec05"><span class="ic">⛽</span> Nhiên liệu</button>
+      <button class="quicknav-btn nav-pro" data-target="sec38"><span class="ic">🍀</span> Lợi nhuận</button>
+      <button class="quicknav-btn nav-pro" data-target="sec06"><span class="ic">💺</span> Sơ đồ giường</button>
+      <button class="quicknav-btn" data-target="sec03"><span class="ic">🏢</span> Chi nhánh</button>
+    </nav>
+
+    <div class="kpi-strip" id="secOverview">
       <div class="kpi-card">
         <div class="kpi-label">Tổng vé bán</div>
         <div class="kpi-value mono" id="kpiTotalTickets">–</div>
@@ -308,7 +332,7 @@
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="sec01">
       <div class="section-head">
         <h3><span class="num">01</span> Xu hướng doanh thu theo ngày</h3>
         <span class="hint">Nét liền = thực thu (đã TT) · Nét đứt = cộng thêm đặt chỗ chưa thu tiền (chỉ bản Pro)</span>
@@ -327,7 +351,7 @@
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="sec02">
       <div class="section-head">
         <h3><span class="num">02</span> <span id="vehicleSectionTitle">Hiệu suất xe (vận hành)</span></h3>
         <div style="display:flex; align-items:center; gap:12px;">
@@ -336,10 +360,12 @@
         </div>
       </div>
       <div class="card">
-        <table id="vehicleTable">
-          <thead id="vehicleTableHead"><tr><th>Biển số</th><th class="num">Số vé</th><th class="num">Doanh thu</th><th class="num">Tỷ lệ huỷ</th><th></th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-scroll">
+          <table id="vehicleTable">
+            <thead id="vehicleTableHead"><tr><th>Biển số</th><th class="num">Số vé</th><th class="num">Doanh thu</th><th class="num">Tỷ lệ huỷ</th><th></th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -413,26 +439,30 @@
       </div>
     </div>
 
-    <div class="section grid2">
+    <div class="section grid2" id="secStaff">
       <div class="card">
         <h4>Top kíp lái (tài xế) theo doanh thu</h4>
-        <table id="driverTable">
-          <thead><tr><th>Kíp lái</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-scroll" style="max-height:420px;">
+          <table id="driverTable">
+            <thead><tr><th>Kíp lái</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="card">
         <h4>Top nhân viên bán vé</h4>
-        <table id="staffTable">
-          <thead><tr><th>Nhân viên</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-scroll" style="max-height:420px;">
+          <table id="staffTable">
+            <thead><tr><th>Nhân viên</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <!-- ============ KHU VỰC CHỈ DÀNH CHO BẢN PRO ============ -->
     <div class="pro-only-section" id="proSection1">
-      <div class="section">
+      <div class="section" id="sec04">
         <div class="section-head">
           <h3><span class="num">04</span> Phân tích chi phí theo biển số xe</h3>
           <div style="display:flex; align-items:center; gap:10px;">
@@ -450,10 +480,12 @@
             <div class="hint" id="costVehicleRankHint" style="margin-bottom:10px;"></div>
             <div class="tier-grid" id="costBreakdownKpis" style="margin-bottom:16px;"></div>
             <div class="grid2" style="display:grid; grid-template-columns:1.3fr 1fr; gap:20px;">
-              <table id="costBreakdownTable">
-                <thead><tr><th>Khoản mục chi phí</th><th class="num">Số tiền</th><th class="num">Tỷ trọng</th></tr></thead>
-                <tbody></tbody>
-              </table>
+              <div class="table-scroll" style="max-height:300px;">
+                <table id="costBreakdownTable">
+                  <thead><tr><th>Khoản mục chi phí</th><th class="num">Số tiền</th><th class="num">Tỷ trọng</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
               <div style="position:relative; height:260px; max-width:320px; margin:0 auto;">
                 <canvas id="costBreakdownChart"></canvas>
               </div>
@@ -462,24 +494,76 @@
         </div>
       </div>
 
-      <div class="section">
+      <div class="section" id="sec05">
         <div class="section-head">
           <h3><span class="num">05</span> Định mức tiêu hao nhiên liệu</h3>
           <span class="hint">Toàn bộ lịch sử, không đổi theo bộ lọc ngày/tuyến ở trên — so với trung bình đội xe</span>
         </div>
         <div class="card">
-          <table id="fuelTable">
-            <thead><tr><th>Biển số</th><th class="num">Số chuyến</th><th class="num">Km ước tính</th><th class="num">Lít tiêu thụ</th><th class="num">Lít/100km</th><th>Đánh giá</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="table-scroll" style="max-height:500px;">
+            <table id="fuelTable">
+              <thead><tr><th>Biển số</th><th class="num">Số chuyến</th><th class="num">Km ước tính</th><th class="num">Lít tiêu thụ</th><th class="num">Lít/100km</th><th>Đánh giá</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
           <div class="hint" id="fuelNote" style="margin-top:12px;"></div>
         </div>
       </div>
 
-      <div class="section">
+      <div class="section" id="sec38">
+        <div class="section-head">
+          <h3><span class="num">38</span> Lợi nhuận (Doanh thu − Chi phí)</h3>
+          <span class="hint">Số 38 theo yêu cầu của anh 🍀 · Lợi nhuận = (Đã thanh toán + Đặt chỗ chưa TT) − Chi phí, vì Đặt chỗ không đi sẽ bị huỷ và khoá sổ ở D-1</span>
+        </div>
+        <div class="card">
+          <div class="tier-grid" id="profitKpis" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;"></div>
+          <div id="profitWarning" class="hint" style="display:none; margin-bottom:14px; padding:10px 14px; border-radius:10px; background:rgba(251,113,133,0.08); border:1px solid var(--danger-dim); color:var(--danger);"></div>
+          <canvas id="profitTrendChart" height="90"></canvas>
+        </div>
+        <div class="section">
+          <div class="section-head">
+            <h3 style="font-size:13.5px;">Lợi nhuận theo tuyến</h3>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="hint">Chi phí phân bổ gần đúng theo tuyến mà mỗi xe chạy nhiều nhất — không phải số tuyệt đối</span>
+              <button class="btn ghost" id="profitVehicleModalBtn" style="padding:7px 14px; font-size:12.5px;">🚌 Xem theo biển số xe</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-scroll" style="max-height:300px;">
+              <table id="profitRouteTable">
+                <thead><tr><th>Tuyến</th><th class="num">Doanh thu (TT+Đặt chỗ)</th><th class="num">Chi phí (ước tính)</th><th class="num">Lợi nhuận</th><th class="num">Biên LN</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="profitVehicleModalOverlay" class="modal-overlay">
+        <div class="modal-box wide" style="width:680px;">
+          <div class="modal-head">
+            <h4>Lợi nhuận theo biển số xe</h4>
+            <button class="modal-close" id="profitVehicleModalClose">✕</button>
+          </div>
+          <div class="modal-toolbar">
+            <input type="text" id="profitVehicleSearchInput" placeholder="Gõ biển số để tìm, hoặc để trống xem tất cả…">
+          </div>
+          <div class="hint" style="padding:0 20px 8px; margin:0;" id="profitVehicleModalHint">Lợi nhuận = (Đã thanh toán + Đặt chỗ chưa TT) − Chi phí · Xanh = lãi, Đỏ = lỗ</div>
+          <div class="modal-list" style="padding:0 20px 16px;">
+            <div class="table-scroll" style="max-height:50vh;">
+              <table id="profitVehicleTable">
+                <thead><tr><th>Biển số</th><th class="num">Doanh thu (TT+Đặt chỗ)</th><th class="num">Chi phí</th><th class="num">Lợi nhuận</th><th class="num">Biên LN</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="sec06">
         <div class="section-head">
           <h3><span class="num">06</span> Sơ đồ giường theo xe</h3>
-          <span class="hint">Tái hiện từng chỗ theo Cấu hình (VLOOKUP theo biển số) — chọn Tuyến → Ngày đi → Biển số</span>
+          <span class="hint">Tái hiện từng chỗ theo Cấu hình xe (LIMO/ LUX/ Gi40) — vui lòng chọn Tuyến → Ngày đi → Biển số</span>
         </div>
         <div class="card">
           <div class="seatmap-controls">
@@ -504,7 +588,7 @@
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="sec03">
       <div class="section-head">
         <h3><span class="num">03</span> Chi nhánh / đại lý</h3>
         <span class="hint">doanh thu quy đổi theo điểm ghi nhận</span>
@@ -677,6 +761,7 @@ function updateTierUI(){
     $('#proLogoutBtn').classList.add('show');
     $('#themeControls').classList.add('show');
     $('#vehicleSectionTitle').textContent = 'Hiệu suất & Lợi nhuận theo xe';
+    $$('.quicknav-btn.nav-pro').forEach(b=> b.style.display = 'flex');
   }else{
     badge.className = 'tier-badge lite';
     badge.textContent = '🔒 BẢN LITE — chỉ vé đã thanh toán';
@@ -691,6 +776,7 @@ function updateTierUI(){
     document.documentElement.style.setProperty('--amber', ACCENT_PRESETS[0].hex);
     COLORS.amber = ACCENT_PRESETS[0].hex;
     $('#vehicleSectionTitle').textContent = 'Hiệu suất xe (vận hành)';
+    $$('.quicknav-btn.nav-pro').forEach(b=> b.style.display = 'none');
   }
 }
 
@@ -1173,10 +1259,10 @@ function render(){
     setKpiValue('kpiCancel', '—');
     $('#kpiCancel').className = 'kpi-value mono lite-locked';
     $('#cardCancel').className = 'kpi-card';
-    $('#kpiCancelSub').textContent = 'Chỉ ở bản Pro';
+    $('#kpiCancelSub').textContent = 'bản Pro';
     setKpiValue('kpiPending', '—');
     $('#kpiPending').className = 'kpi-value mono lite-locked';
-    $('#kpiPendingSub').textContent = 'Chỉ ở bản Pro';
+    $('#kpiPendingSub').textContent = 'bản Pro';
     setKpiValue('kpiTotalWithPending', '—');
     $('#kpiTotalWithPending').className = 'kpi-value mono lite-locked';
   }
@@ -1192,8 +1278,169 @@ function render(){
   if(tierIsPro()){
     renderCostBreakdown();
     renderFuelTable();
+    renderProfit(filtered);
   }
 }
+
+// ---------- Lợi nhuận (mục 38, Pro) ----------
+function vehicleDominantRoute(){
+  const map = new Map();
+  RAW.forEach(r=>{
+    if(!map.has(r.xe)) map.set(r.xe, new Map());
+    const m = map.get(r.xe);
+    m.set(r.tuyen, (m.get(r.tuyen)||0)+1);
+  });
+  const result = new Map();
+  map.forEach((m, xe)=>{
+    let best = null, bestCount = -1;
+    m.forEach((c,t)=>{ if(c>bestCount){ bestCount=c; best=t; } });
+    result.set(xe, best);
+  });
+  return result;
+}
+
+function renderProfit(filtered){
+  const {from, to} = computeRange(currentPeriod);
+  const costs = costsInRange(from, to);
+  const paidRows = filtered.filter(r=>r.trangThai==='Đã thanh toán');
+  const pendingRows = filtered.filter(r=>r.trangThai==='Đặt chỗ');
+  const revenueRows = filtered.filter(r=>r.trangThai==='Đã thanh toán' || r.trangThai==='Đặt chỗ');
+
+  // ---- Doanh thu (TT + Đặt chỗ) & chi phí theo ngày ----
+  const revByDay = new Map();
+  revenueRows.forEach(r=>{ const k=r.ngayDi.getTime(); revByDay.set(k,(revByDay.get(k)||0)+r.thanhTien); });
+  const costByDay = new Map();
+  costs.forEach(r=>{
+    const k = r.ngay.getTime();
+    const total = Object.values(r.categories).reduce((s,v)=>s+v,0);
+    costByDay.set(k,(costByDay.get(k)||0)+total);
+  });
+
+  const totalPaid = paidRows.reduce((s,r)=>s+r.thanhTien,0);
+  const totalPending = pendingRows.reduce((s,r)=>s+r.thanhTien,0);
+  const totalRevenue = totalPaid + totalPending;
+  const totalCost = Array.from(costByDay.values()).reduce((a,b)=>a+b,0);
+  const totalProfit = totalRevenue - totalCost;
+  const margin = totalRevenue ? totalProfit/totalRevenue : 0;
+
+  $('#profitKpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label" title="Đã thanh toán + Đặt chỗ chưa TT (khách trả khi lên xe/tới nơi)">Doanh thu ghi nhận ⓘ</div><div class="kpi-value mono">${fmtVNDShort(totalRevenue)}</div><div class="kpi-sub">${fmtVNDShort(totalPaid)} đã TT + ${fmtVNDShort(totalPending)} đặt chỗ</div></div>
+    <div class="kpi-card"><div class="kpi-label">Tổng chi phí</div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ</div></div>
+    <div class="kpi-card"><div class="kpi-label">Lợi nhuận ròng</div><div class="kpi-value mono" style="color:${totalProfit<0?'var(--danger)':'var(--teal)'}">${fmtVNDShort(totalProfit)}</div><div class="kpi-sub">Doanh thu ghi nhận − Chi phí</div></div>
+    <div class="kpi-card"><div class="kpi-label">Biên lợi nhuận</div><div class="kpi-value mono" style="color:${margin<0?'var(--danger)':'var(--text-hi)'}">${fmtPct(margin)}</div><div class="kpi-sub">Lợi nhuận / Doanh thu</div></div>
+  `;
+
+  // ---- Biểu đồ xu hướng: doanh thu (cột), chi phí (cột), lợi nhuận (đường) ----
+  const allDays = Array.from(new Set([...revByDay.keys(), ...costByDay.keys()])).sort((a,b)=>a-b);
+  const labels = allDays.map(t=>new Date(t).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'}));
+  const revData = allDays.map(t=>revByDay.get(t)||0);
+  const costData = allDays.map(t=>costByDay.get(t)||0);
+  const profitData = allDays.map((t,i)=>revData[i]-costData[i]);
+
+  destroy('profitTrend');
+  charts.profitTrend = new Chart($('#profitTrendChart'), {
+    data:{
+      labels,
+      datasets:[
+        {type:'bar', label:'Doanh thu (TT + Đặt chỗ)', data:revData, backgroundColor:'rgba(94,234,212,0.45)', borderRadius:4, order:2},
+        {type:'bar', label:'Chi phí', data:costData, backgroundColor:'rgba(251,113,133,0.45)', borderRadius:4, order:2},
+        {type:'line', label:'Lợi nhuận', data:profitData, borderColor:COLORS.amber, backgroundColor:'transparent', tension:0.3, pointRadius:3, order:1}
+      ]
+    },
+    options:{
+      plugins:{ legend:{labels:{color:COLORS.textlo}}, tooltip:{callbacks:{label:(c)=>' '+c.dataset.label+': '+fmtVND(c.parsed.y)+' đ'}} },
+      scales:{
+        x:{ ticks:{color:COLORS.textlo, maxTicksLimit:14}, grid:{display:false} },
+        y:{ ticks:{color:COLORS.textlo, callback:(v)=>(v/1e6).toFixed(0)+'tr'}, grid:{color:gridColor()} }
+      }
+    }
+  });
+
+  // ---- Lợi nhuận theo tuyến (chi phí phân bổ gần đúng theo xe chủ lực từng tuyến) ----
+  const domRoute = vehicleDominantRoute();
+  const revByRoute = new Map();
+  revenueRows.forEach(r=>{ revByRoute.set(r.tuyen, (revByRoute.get(r.tuyen)||0) + r.thanhTien); });
+  const costByRoute = new Map();
+  costs.forEach(r=>{
+    const tuyen = domRoute.get(r.xe) || '(không rõ)';
+    const total = Object.values(r.categories).reduce((s,v)=>s+v,0);
+    costByRoute.set(tuyen, (costByRoute.get(tuyen)||0) + total);
+  });
+  const routeKeys = Array.from(new Set([...revByRoute.keys(), ...costByRoute.keys()])).sort();
+  const routeRows = routeKeys.map(t=>{
+    const rev = revByRoute.get(t) || 0;
+    const cost = costByRoute.get(t) || 0;
+    const profit = rev - cost;
+    return { tuyen:t, rev, cost, profit, margin: rev ? profit/rev : 0 };
+  }).sort((a,b)=>b.profit-a.profit);
+  $('#profitRouteTable tbody').innerHTML = routeRows.map(r=>`
+    <tr>
+      <td>${r.tuyen}</td>
+      <td class="num mono">${fmtVND(r.rev)}</td>
+      <td class="num mono">${fmtVND(r.cost)}</td>
+      <td class="num mono" style="color:${r.profit<0?'var(--danger)':'var(--teal)'}">${fmtVND(r.profit)}</td>
+      <td class="num mono" style="color:${r.margin<0?'var(--danger)':'var(--text-lo)'}">${fmtPct(r.margin)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-lo)">Không có dữ liệu</td></tr>';
+
+  // ---- Xếp hạng lợi nhuận theo xe ----
+  const costByXe = new Map();
+  costs.forEach(r=>{
+    const total = Object.values(r.categories).reduce((s,v)=>s+v,0);
+    costByXe.set(r.xe, (costByXe.get(r.xe)||0) + total);
+  });
+  const revByXe = new Map();
+  revenueRows.forEach(r=>{ revByXe.set(r.xe, (revByXe.get(r.xe)||0) + r.thanhTien); });
+  const allXe = Array.from(new Set([...revByXe.keys(), ...costByXe.keys()])).sort();
+  PROFIT_VEHICLE_ROWS = allXe.map(xe=>{
+    const rev = revByXe.get(xe) || 0;
+    const cost = costByXe.get(xe) || 0;
+    const profit = rev - cost;
+    return { xe, rev, cost, profit, margin: rev ? profit/rev : 0 };
+  }).sort((a,b)=>b.profit-a.profit);
+
+  const lossCount = PROFIT_VEHICLE_ROWS.filter(r=>r.profit<0).length;
+  const warnEl = $('#profitWarning');
+  if(lossCount){
+    warnEl.style.display = 'block';
+    warnEl.textContent = `⚠️ ${lossCount} xe đang lỗ (chi phí > doanh thu ghi nhận) trong kỳ đang lọc — bấm "Xem theo biển số xe" để xử lý sớm.`;
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  // Nếu modal đang mở sẵn (đổi bộ lọc kỳ/tuyến trong khi modal mở) thì vẽ lại luôn cho khớp
+  if($('#profitVehicleModalOverlay').classList.contains('open')){
+    renderProfitVehicleModalTable($('#profitVehicleSearchInput').value);
+  }
+}
+
+// ---------- Modal "Lợi nhuận theo biển số xe" (mục 38) ----------
+let PROFIT_VEHICLE_ROWS = [];
+
+function renderProfitVehicleModalTable(query){
+  const q = String(query||'').trim().toLowerCase();
+  const rows = q ? PROFIT_VEHICLE_ROWS.filter(r=>r.xe.toLowerCase().includes(q)) : PROFIT_VEHICLE_ROWS;
+  $('#profitVehicleTable tbody').innerHTML = rows.map(r=>`
+    <tr>
+      <td class="mono">${r.xe}</td>
+      <td class="num mono">${fmtVND(r.rev)}</td>
+      <td class="num mono">${fmtVND(r.cost)}</td>
+      <td class="num mono" style="color:${r.profit<0?'var(--danger)':'var(--teal)'}">${fmtVND(r.profit)}</td>
+      <td class="num mono" style="color:${r.margin<0?'var(--danger)':'var(--text-lo)'}">${fmtPct(r.margin)}</td>
+    </tr>`).join('') || `<tr><td colspan="5" style="color:var(--text-lo)">${q ? 'Không tìm thấy biển số khớp "'+query+'"' : 'Không có dữ liệu'}</td></tr>`;
+}
+
+function openProfitVehicleModal(){
+  $('#profitVehicleSearchInput').value = '';
+  renderProfitVehicleModalTable('');
+  $('#profitVehicleModalOverlay').classList.add('open');
+  $('#profitVehicleSearchInput').focus();
+}
+function closeProfitVehicleModal(){ $('#profitVehicleModalOverlay').classList.remove('open'); }
+
+$('#profitVehicleModalBtn').addEventListener('click', openProfitVehicleModal);
+$('#profitVehicleModalClose').addEventListener('click', closeProfitVehicleModal);
+$('#profitVehicleModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='profitVehicleModalOverlay') closeProfitVehicleModal(); });
+$('#profitVehicleSearchInput').addEventListener('input', (e)=> renderProfitVehicleModalTable(e.target.value));
 
 // ---------- Chi phí (Pro) ----------
 function costsInRange(from, to){
@@ -1678,10 +1925,12 @@ function renderVehicleDetailCost(xe, from, to){
   costEmpty.style.display = 'none';
 
   const daysWithCost = new Set(costRows.map(r=>r.ngay.getTime())).size;
-  const paidRevenue = RAW.filter(r=>r.xe===xe && r.trangThai==='Đã thanh toán' && inRange(r.ngayDi, from, to))
-    .reduce((s,r)=>s+r.thanhTien,0);
-  const profit = paidRevenue - grandTotal;
-  const margin = paidRevenue ? profit/paidRevenue : 0;
+  const xeRowsInRange = RAW.filter(r=>r.xe===xe && inRange(r.ngayDi, from, to));
+  const paidRevenue = xeRowsInRange.filter(r=>r.trangThai==='Đã thanh toán').reduce((s,r)=>s+r.thanhTien,0);
+  const pendingRevenue = xeRowsInRange.filter(r=>r.trangThai==='Đặt chỗ').reduce((s,r)=>s+r.thanhTien,0);
+  const revenueBase = paidRevenue + pendingRevenue;
+  const profit = revenueBase - grandTotal;
+  const margin = revenueBase ? profit/revenueBase : 0;
 
   $('#vehicleDetailCostKpis').innerHTML = `
     <div class="tier-card">
@@ -1693,12 +1942,12 @@ function renderVehicleDetailCost(xe, from, to){
       <div class="tier-count mono">${fmtInt(daysWithCost)}</div>
     </div>
     <div class="tier-card">
-      <div class="tier-label">Lợi nhuận (thực thu − chi phí)</div>
+      <div class="tier-label" title="Gồm Đặt chỗ chưa TT vì khách trả khi lên xe/tới nơi — nếu bùng vé sẽ bị huỷ ở ngày hôm sau (D-1)">Lợi nhuận (TT + Đặt chỗ − chi phí) ⓘ</div>
       <div class="tier-count mono" style="color:${profit<0?'var(--danger)':'var(--teal)'}">${fmtVNDShort(profit)} đ</div>
     </div>
     <div class="tier-card">
       <div class="tier-label">Biên lợi nhuận</div>
-      <div class="tier-count mono" style="color:${margin<0?'var(--danger)':'var(--text-lo)'}">${paidRevenue ? fmtPct(margin) : '—'}</div>
+      <div class="tier-count mono" style="color:${margin<0?'var(--danger)':'var(--text-lo)'}">${revenueBase ? fmtPct(margin) : '—'}</div>
     </div>`;
 
   const catRows = Array.from(byCategory.entries()).map(([cat,v])=>({cat, v})).sort((a,b)=>b.v-a.v);
@@ -1745,7 +1994,7 @@ function renderVehicle(filtered){
   }
 
   // ---- BẢN PRO: gộp hiệu suất + đặt chỗ + chi phí + lợi nhuận (thay cho 02+04 cũ) ----
-  $('#vehicleTableHead').innerHTML = '<tr><th>Biển số</th><th class="num">Số vé</th><th class="num">Doanh thu thực thu</th><th class="num">Đặt chỗ chưa TT</th><th class="num">Tỷ lệ huỷ</th><th class="num">Tổng chi phí</th><th class="num">Lợi nhuận</th><th class="num">Biên LN</th><th></th><th></th></tr>';
+  $('#vehicleTableHead').innerHTML = '<tr><th>Biển số</th><th class="num">Số vé</th><th class="num">Doanh thu thực thu</th><th class="num">Đặt chỗ chưa TT</th><th class="num">Tỷ lệ huỷ</th><th class="num">Tổng chi phí</th><th class="num" title="Gồm Đã thanh toán + Đặt chỗ chưa TT (khách trả khi lên xe/tới nơi, bùng vé sẽ bị huỷ ở D-1) trừ Chi phí">Lợi nhuận ⓘ</th><th class="num">Biên LN</th><th></th><th></th></tr>';
 
   const {from, to} = computeRange(currentPeriod);
   const costs = costsInRange(from, to);
@@ -1773,8 +2022,8 @@ function renderVehicle(filtered){
   const rows = allXe.map(xe=>{
     const s = statByXe.get(xe) || {count:0, total:0, cancelled:0, paidRevenue:0, pendingRevenue:0};
     const cost = costByXe.get(xe) || 0;
-    const profit = s.paidRevenue - cost;
-    const margin = s.paidRevenue ? profit/s.paidRevenue : 0;
+    const profit = (s.paidRevenue + s.pendingRevenue) - cost;
+    const margin = (s.paidRevenue + s.pendingRevenue) ? profit/(s.paidRevenue + s.pendingRevenue) : 0;
     return { xe, ...s, cost, profit, margin };
   }).sort((a,b)=>b.paidRevenue-a.paidRevenue);
 
@@ -1824,6 +2073,30 @@ function renderAgency(filtered){
     }
   });
 }
+
+// ---------- Thanh điều hướng nhanh theo tính năng (quicknav) ----------
+$$('.quicknav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const target = $('#'+btn.dataset.target);
+    if(!target) return;
+    target.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+
+(function initQuicknavActiveState(){
+  const targets = $$('.quicknav-btn').map(b=>$('#'+b.dataset.target)).filter(Boolean);
+  if(!targets.length || !('IntersectionObserver' in window)) return;
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting) return;
+      const btn = $(`.quicknav-btn[data-target="${entry.target.id}"]`);
+      if(!btn) return;
+      $$('.quicknav-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  }, { rootMargin: '-160px 0px -70% 0px', threshold: 0 });
+  targets.forEach(t=>observer.observe(t));
+})();
 </script>
 </body>
 </html>
