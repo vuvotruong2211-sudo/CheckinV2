@@ -77,6 +77,27 @@
   .pro-logout-btn:hover{ background:rgba(251,113,133,0.1); }
   .pro-logout-btn.show{display:inline-flex;}
   .lite-locked{ color:var(--text-lo); font-style:italic; font-size:12px; }
+  .seatmap-controls{display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
+  .seatmap-controls select, .seatmap-controls input[type="date"]{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:8px 12px; border-radius:8px; font-size:13px; font-family:'Inter',sans-serif; }
+  .seatmap-back{display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:18px; padding-bottom:18px; border-bottom:1px dashed var(--line);}
+  .seatmap-wrap{display:flex; gap:30px; flex-wrap:wrap; justify-content:center;}
+  .seatmap-col{display:flex; flex-direction:column; gap:8px; align-items:center;}
+  .seatmap-col-label{font-weight:700; font-size:11.5px; color:var(--text-lo); letter-spacing:.5px; margin-bottom:2px; text-transform:uppercase;}
+  .seat-row{display:flex; gap:8px;}
+  .seat-cell{width:58px; height:46px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; border:1.5px solid var(--line); position:relative; line-height:1.15;}
+  .seat-cell.empty{visibility:hidden;}
+  .seat-cell.trong{background:var(--surface-2); color:var(--text-lo); border-style:dashed; font-weight:600;}
+  .seat-cell.dathanhtoan{background:rgba(242,183,5,0.22); border-color:var(--amber); color:#F2B705;}
+  .seat-cell.vexere{background:rgba(59,130,246,0.22); border-color:#3B82F6; color:#3B82F6;}
+  .seat-cell.datcho{background:rgba(244,114,182,0.22); border-color:#F472B6; color:#F472B6;}
+  .seat-cell.huy{background:rgba(255,255,255,0.10); border-color:var(--line); color:var(--text-lo); opacity:.65;}
+  .seat-cell .price{font-size:9px; font-weight:500; opacity:.85; margin-top:1px;}
+  .seat-legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:12.5px; color:var(--text-lo); align-items:center;}
+  .seat-legend .dot{width:12px;height:12px;border-radius:4px; display:inline-block; margin-right:6px; vertical-align:middle; border:1.5px solid var(--line);}
+  .seatmap-mini .seat-cell{width:44px; height:38px; font-size:10px;}
+  .seatmap-mini .seat-row{gap:6px;}
+  .seatmap-mini .seatmap-wrap{gap:20px;}
+  .seatmap-mini .seat-cell .price{font-size:8px;}
   .pro-only-section{display:none;}
   .logo-img{ width:52px; height:52px; border-radius:12px; object-fit:contain; background:var(--surface-2); padding:4px; border:1px solid var(--line); }
   .theme-controls{display:none; align-items:center; gap:10px; flex-wrap:wrap;}
@@ -345,7 +366,7 @@
     </div>
 
     <div id="vehicleDetailOverlay" class="modal-overlay">
-      <div class="modal-box wide">
+      <div class="modal-box wide" style="width:760px;">
         <div class="modal-head">
           <h4>Chi tiết vận hành — <span id="vehicleDetailPlate" class="mono"></span></h4>
           <button class="modal-close" id="vehicleDetailClose">✕</button>
@@ -357,6 +378,37 @@
             <thead><tr><th>Trạng thái</th><th class="num">Số vé</th><th class="num">Doanh thu</th><th class="num">Tỷ trọng</th></tr></thead>
             <tbody></tbody>
           </table>
+
+          <div id="vehicleDetailCostSection" style="display:none; margin-top:24px; padding-top:20px; border-top:1px solid var(--line);">
+            <h4 style="margin-bottom:14px;">💰 Chi phí vận hành xe này</h4>
+            <div class="tier-grid" id="vehicleDetailCostKpis" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;"></div>
+            <div class="grid2" style="display:grid; grid-template-columns:1.3fr 1fr; gap:20px;">
+              <table id="vehicleDetailCostTable">
+                <thead><tr><th>Khoản mục chi phí</th><th class="num">Số tiền</th><th class="num">Tỷ trọng</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div style="position:relative; height:230px; max-width:280px; margin:0 auto;">
+                <canvas id="vehicleDetailCostChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div id="vehicleDetailCostEmpty" class="hint" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--line);">Chưa có chi phí ghi nhận cho xe này trong khoảng ngày đã lọc.</div>
+
+          <div id="vehicleDetailSeatmapSection" style="display:none; margin-top:24px; padding-top:20px; border-top:1px solid var(--line);">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+              <h4 style="margin:0;">💺 Sơ đồ giường ngày cụ thể</h4>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <select id="vehicleDetailSeatmapRoute" style="min-width:140px;"></select>
+                <input type="date" id="vehicleDetailSeatmapDate">
+              </div>
+            </div>
+            <div id="vehicleDetailSeatmapEmpty" class="hint">Chọn ngày để xem sơ đồ.</div>
+            <div id="vehicleDetailSeatmapContent" class="seatmap-mini" style="display:none;">
+              <div id="vehicleDetailSeatmapConfigHint" class="hint" style="margin-bottom:10px;"></div>
+              <div id="vehicleDetailSeatmapGrid"></div>
+              <div id="vehicleDetailSeatmapUnknown" class="hint" style="margin-top:12px; display:none;"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -413,7 +465,7 @@
       <div class="section">
         <div class="section-head">
           <h3><span class="num">05</span> Định mức tiêu hao nhiên liệu</h3>
-          <span class="hint">Lít tiêu thụ ÷ km ước tính (số chuyến × quãng đường tuyến) — so với trung bình đội xe</span>
+          <span class="hint">Toàn bộ lịch sử, không đổi theo bộ lọc ngày/tuyến ở trên — so với trung bình đội xe</span>
         </div>
         <div class="card">
           <table id="fuelTable">
@@ -421,6 +473,33 @@
             <tbody></tbody>
           </table>
           <div class="hint" id="fuelNote" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h3><span class="num">06</span> Sơ đồ giường theo xe</h3>
+          <span class="hint">Tái hiện từng chỗ theo Cấu hình (VLOOKUP theo biển số) — chọn Tuyến → Ngày đi → Biển số</span>
+        </div>
+        <div class="card">
+          <div class="seatmap-controls">
+            <select id="seatmapRoute"><option value="">— Chọn tuyến —</option></select>
+            <input type="date" id="seatmapDate">
+            <select id="seatmapVehicle"><option value="">— Chọn biển số —</option></select>
+            <span class="hint" id="seatmapConfigHint"></span>
+          </div>
+          <div id="seatmapEmpty" class="hint">Chọn đủ Tuyến, Ngày đi và Biển số xe để xem sơ đồ giường.</div>
+          <div id="seatmapContent" style="display:none;">
+            <div class="seat-legend">
+              <span><span class="dot" style="background:rgba(242,183,5,0.35); border-color:#F2B705;"></span>Đã thanh toán</span>
+              <span><span class="dot" style="background:rgba(59,130,246,0.35); border-color:#3B82F6;"></span>Đã TT — Vé xe rẻ (đại lý)</span>
+              <span><span class="dot" style="background:rgba(244,114,182,0.35); border-color:#F472B6;"></span>Đặt chỗ (chưa TT)</span>
+              <span><span class="dot" style="background:rgba(255,255,255,0.14);"></span>Đã huỷ</span>
+              <span><span class="dot" style="background:var(--surface-2); border-style:dashed;"></span>Ghế trống</span>
+            </div>
+            <div id="seatmapGrid"></div>
+            <div id="seatmapUnknown" class="hint" style="margin-top:14px; display:none;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -646,6 +725,7 @@ $('#proUnlockBtn').addEventListener('click', ()=>{
           $('#proMsg').textContent = 'Đã mở khoá Pro ✓';
           $('#proMsg').className = 'pro-msg ok';
           initDashboard();
+          initSeatMap();
         })
         .withFailureHandler(function(err){
           $('#proUnlockBtn').disabled = false;
@@ -676,6 +756,11 @@ $('#proLogoutBtn').addEventListener('click', ()=>{
       RAW = normalize(result.rows || []);
       updateTierUI();
       initDashboard();
+      $('#seatmapRoute').innerHTML = '<option value="">— Chọn tuyến —</option>';
+      $('#seatmapVehicle').innerHTML = '<option value="">— Chọn biển số —</option>';
+      $('#seatmapDate').value = '';
+      $('#seatmapEmpty').style.display = 'block';
+      $('#seatmapContent').style.display = 'none';
     })
     .withFailureHandler(function(err){
       alert('Không thoát được bản Pro: ' + (err && err.message ? err.message : err));
@@ -746,7 +831,9 @@ function normalize(json){
       trangThai: getVal(row, hmap, 'Trạng thái') || '',
       nguon: getVal(row, hmap, 'Nguồn đặt vé') || '(không rõ)',
       chuyen: getVal(row, hmap, 'Chuyến') || '',
-      thanhTien: isNaN(thanhTien) ? 0 : thanhTien
+      thanhTien: isNaN(thanhTien) ? 0 : thanhTien,
+      maGhe: String(getVal(row, hmap, 'Mã ghế') || '').trim().toUpperCase(),
+      cauHinh: String(getVal(row, hmap, 'Cấu hình') || '').trim()
     };
   }).filter(r=>r.ngayDi);
 }
@@ -784,6 +871,221 @@ function buildFuelPriceLookup(fuelPrices){
     return best ? best.price : null;
   };
 }
+
+// ---------- Sơ đồ giường theo xe (Pro) ----------
+const SEAT_TEMPLATES = {
+  LIMOUSINE_24: {
+    columns: [
+      { label: 'Dãy B — Cửa lên', rows: [['B11','B12'],['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2']] },
+      { label: 'Dãy A — Tài xế', rows: [['A11','A12'],['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']] }
+    ]
+  },
+  LUXURY_34: {
+    columns: [
+      { label: 'Dãy C — Cửa lên', rows: [['C11','C12'],['C9','C10'],['C7','C8'],['C5','C6'],['C3','C4'],['C1','C2']] },
+      { label: 'Dãy B', rows: [['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2'],[null,null]] },
+      { label: 'Dãy A — Tài xế', rows: [['A11','A12'],['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']] }
+    ]
+  },
+  GIUONG_40: {
+    backRows: [['D10','D9','D8','D7','D6'],['D5','D4','D3','D2','D1']],
+    columns: [
+      { label: 'Dãy C — Cửa lên', rows: [['C9','C10'],['C7','C8'],['C5','C6'],['C3','C4'],['C1','C2']] },
+      { label: 'Dãy B', rows: [['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2']] },
+      { label: 'Dãy A — Tài xế', rows: [['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']] }
+    ]
+  }
+};
+Object.values(SEAT_TEMPLATES).forEach(t=>{
+  const all = [];
+  (t.backRows||[]).forEach(r=>r.forEach(c=>{ if(c) all.push(c); }));
+  t.columns.forEach(col=>col.rows.forEach(r=>r.forEach(c=>{ if(c) all.push(c); })));
+  t.allCodes = new Set(all);
+});
+
+function detectTemplateKey(cauHinh){
+  const s = String(cauHinh||'').toLowerCase();
+  if(s.includes('limousine') || s.trim()==='24' || s.includes('24 cabin') || s.includes('24 phòng')) return 'LIMOUSINE_24';
+  if(s.includes('luxury') || s.trim()==='34' || s.includes('34 cabin')) return 'LUXURY_34';
+  if(s.includes('giường') || s.includes('giuong') || s.trim()==='40') return 'GIUONG_40';
+  return null;
+}
+
+function seatStatusClass(row){
+  const trangThai = row.trangThai;
+  if(trangThai === 'Hủy' || trangThai === 'Huỷ') return 'huy';
+  if(trangThai === 'Đặt chỗ') return 'datcho';
+  if(trangThai === 'Đã thanh toán'){
+    return (row.nguon === 'Vé xe rẻ') ? 'vexere' : 'dathanhtoan';
+  }
+  return 'trong';
+}
+
+function initSeatMap(){
+  const routes = Array.from(new Set(RAW.map(r=>r.tuyen))).sort();
+  const routeSel = $('#seatmapRoute');
+  const prevRoute = routeSel.value;
+  routeSel.innerHTML = '<option value="">— Chọn tuyến —</option>' + routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if(routes.includes(prevRoute)) routeSel.value = prevRoute;
+  onSeatmapFilterChange();
+}
+
+function onSeatmapFilterChange(){
+  const tuyen = $('#seatmapRoute').value;
+  const dateVal = $('#seatmapDate').value;
+  const vehicleSel = $('#seatmapVehicle');
+  const prevVehicle = vehicleSel.value;
+  if(!tuyen || !dateVal){
+    vehicleSel.innerHTML = '<option value="">— Chọn biển số —</option>';
+    renderSeatMapUI(SEATMAP_IDS, '', '', '');
+    return;
+  }
+  const d = toDateOnly(new Date(dateVal));
+  const vehicles = Array.from(new Set(
+    RAW.filter(r=>r.tuyen===tuyen && r.ngayDi && r.ngayDi.getTime()===d.getTime()).map(r=>r.xe)
+  )).sort();
+  vehicleSel.innerHTML = '<option value="">— Chọn biển số —</option>' + vehicles.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if(vehicles.includes(prevVehicle)) vehicleSel.value = prevVehicle;
+  renderSeatMapUI(SEATMAP_IDS, tuyen, vehicleSel.value, dateVal);
+}
+
+function seatMapCellHTML(code, seatByCode){
+  if(code === null) return '<div class="seat-cell empty"></div>';
+  const list = seatByCode.get(code);
+  if(!list || !list.length){
+    return `<div class="seat-cell trong" title="Ghế ${code} — chưa có ai đặt"><span>${code}</span></div>`;
+  }
+  const r = list[0];
+  const cls = seatStatusClass(r);
+  const dupWarn = list.length > 1 ? ` ⚠×${list.length}` : '';
+  const titleParts = list.map(x => `${x.trangThai || '?'}${x.nguon==='Vé xe rẻ' ? ' (Vé xe rẻ)' : ''} · ${x.nhanVien || x.cnDaiLy || '?'} · ${fmtVND(x.thanhTien)}đ`);
+  const title = (`Ghế ${code} — ` + titleParts.join(' | ')).replace(/"/g,'&quot;');
+  return `<div class="seat-cell ${cls}" title="${title}"><span>${code}${dupWarn}</span><span class="price">${fmtVNDShort(r.thanhTien)}</span></div>`;
+}
+
+function seatMapRowHTML(codes, seatByCode){
+  return `<div class="seat-row">${codes.map(c=>seatMapCellHTML(c, seatByCode)).join('')}</div>`;
+}
+
+function buildSeatMapHTML(template, seatByCode){
+  let html = '';
+  if(template.backRows){
+    html += '<div class="seatmap-back">' + template.backRows.map(r=>seatMapRowHTML(r, seatByCode)).join('') + '</div>';
+  }
+  html += '<div class="seatmap-wrap">' + template.columns.map(col=>
+    `<div class="seatmap-col"><div class="seatmap-col-label">${col.label}</div>${col.rows.map(r=>seatMapRowHTML(r, seatByCode)).join('')}</div>`
+  ).join('') + '</div>';
+  return html;
+}
+
+const SEATMAP_IDS = { empty:'seatmapEmpty', content:'seatmapContent', configHint:'seatmapConfigHint', grid:'seatmapGrid', unknown:'seatmapUnknown' };
+
+// Hàm dùng chung: vẽ sơ đồ giường vào bất kỳ bộ id nào (mục 06 độc lập, hoặc modal chi tiết xe)
+function renderSeatMapUI(ids, tuyen, xe, dateVal){
+  const emptyEl = $('#'+ids.empty);
+  const contentEl = $('#'+ids.content);
+  const hintEl = $('#'+ids.configHint);
+  if(hintEl) hintEl.textContent = '';
+
+  if(!tuyen || !dateVal || !xe){
+    emptyEl.textContent = 'Chọn đủ Tuyến, Ngày đi và Biển số xe để xem sơ đồ giường.';
+    emptyEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    return;
+  }
+
+  const d = toDateOnly(new Date(dateVal));
+  const rows = RAW.filter(r=>r.tuyen===tuyen && r.xe===xe && r.ngayDi && r.ngayDi.getTime()===d.getTime());
+
+  if(!rows.length){
+    emptyEl.textContent = 'Không có dữ liệu vé cho lựa chọn này.';
+    emptyEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    return;
+  }
+
+  const cauHinhRow = rows.find(r=>r.cauHinh);
+  const cauHinhVal = cauHinhRow ? cauHinhRow.cauHinh : '';
+  const key = detectTemplateKey(cauHinhVal);
+  if(hintEl) hintEl.textContent = cauHinhVal
+    ? `Cấu hình: ${cauHinhVal}`
+    : 'Chưa có Cấu hình (cột L) cho xe này — kiểm tra lại VLOOKUP theo biển số ở sheet RawData.';
+
+  const seatByCode = new Map();
+  rows.forEach(r=>{
+    const code = r.maGhe;
+    if(!code) return;
+    if(!seatByCode.has(code)) seatByCode.set(code, []);
+    seatByCode.get(code).push(r);
+  });
+
+  emptyEl.style.display = 'none';
+  contentEl.style.display = 'block';
+
+  const template = key ? SEAT_TEMPLATES[key] : null;
+  const grid = $('#'+ids.grid);
+
+  if(!template){
+    grid.innerHTML = `<div class="hint">Không nhận diện được sơ đồ mẫu ứng với Cấu hình "${(cauHinhVal||'(trống)')}". Kiểm tra lại giá trị Cấu hình (Limousine / Luxury / Giường nằm 40).</div>`;
+  } else {
+    grid.innerHTML = buildSeatMapHTML(template, seatByCode);
+  }
+
+  const placedCodes = template ? template.allCodes : new Set();
+  const unknownEl = $('#'+ids.unknown);
+  const unknown = [];
+  seatByCode.forEach((list, code)=>{ if(!placedCodes.has(code)) unknown.push([code, list]); });
+
+  if(unknown.length){
+    unknownEl.style.display = 'block';
+    unknownEl.innerHTML = '⚠️ ' + unknown.length + ' ghế không khớp sơ đồ mẫu (ghế phụ / băng ca / sai Mã ghế): ' +
+      unknown.map(([code,list])=>`<b>${code}</b> (${list.map(r=>r.trangThai||'?').join(', ')})`).join(' · ');
+  } else {
+    unknownEl.style.display = 'none';
+    unknownEl.innerHTML = '';
+  }
+}
+
+function renderSeatMap(){
+  renderSeatMapUI(SEATMAP_IDS, $('#seatmapRoute').value, $('#seatmapVehicle').value, $('#seatmapDate').value);
+}
+
+$('#seatmapRoute').addEventListener('change', onSeatmapFilterChange);
+$('#seatmapDate').addEventListener('change', onSeatmapFilterChange);
+$('#seatmapVehicle').addEventListener('change', renderSeatMap);
+
+// ---------- Sơ đồ giường thu gọn trong modal "Chi tiết vận hành" ----------
+const VEHICLE_DETAIL_SEATMAP_IDS = { empty:'vehicleDetailSeatmapEmpty', content:'vehicleDetailSeatmapContent', configHint:'vehicleDetailSeatmapConfigHint', grid:'vehicleDetailSeatmapGrid', unknown:'vehicleDetailSeatmapUnknown' };
+let vdSeatmapXe = null;
+
+function setupVehicleDetailSeatmap(xe){
+  vdSeatmapXe = xe;
+  const section = $('#vehicleDetailSeatmapSection');
+  if(!tierIsPro()){ section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const xeRows = RAW.filter(r=>r.xe===xe);
+  const routes = Array.from(new Set(xeRows.map(r=>r.tuyen))).sort();
+  const routeSel = $('#vehicleDetailSeatmapRoute');
+  routeSel.innerHTML = routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+
+  const dates = xeRows.map(r=>r.ngayDi).filter(Boolean).sort((a,b)=>b-a);
+  const dateInput = $('#vehicleDetailSeatmapDate');
+  if(dates.length) dateInput.value = dates[0].toISOString().slice(0,10);
+  else dateInput.value = '';
+
+  renderVehicleDetailSeatmap();
+}
+
+function renderVehicleDetailSeatmap(){
+  if(!vdSeatmapXe) return;
+  const tuyen = $('#vehicleDetailSeatmapRoute').value;
+  const dateVal = $('#vehicleDetailSeatmapDate').value;
+  renderSeatMapUI(VEHICLE_DETAIL_SEATMAP_IDS, tuyen, vdSeatmapXe, dateVal);
+}
+
+$('#vehicleDetailSeatmapRoute').addEventListener('change', renderVehicleDetailSeatmap);
+$('#vehicleDetailSeatmapDate').addEventListener('change', renderVehicleDetailSeatmap);
 
 let currentPeriod = 'all';
 let customFrom = null, customTo = null;
@@ -889,7 +1191,7 @@ function render(){
 
   if(tierIsPro()){
     renderCostBreakdown();
-    renderFuelTable(filtered);
+    renderFuelTable();
   }
 }
 
@@ -1054,8 +1356,7 @@ function renderCostBreakdown(){
 }
 
 // ---------- Định mức tiêu hao nhiên liệu (Pro) ----------
-function renderFuelTable(filtered){
-  const {from, to} = computeRange(currentPeriod);
+function renderFuelTable(){
   const fuelCatName = COST_CATEGORIES.find(c=>c==='Nhiên liệu');
   if(!fuelCatName || !FUEL_PRICE_LOOKUP){
     $('#fuelTable tbody').innerHTML = '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có cột "Nhiên liệu" trong ChiPhi hoặc chưa có dữ liệu GiaNhienLieu</td></tr>';
@@ -1063,13 +1364,18 @@ function renderFuelTable(filtered){
     return;
   }
 
-  const MIN_TRIPS = 3; // xe chạy quá ít chuyến trong kỳ lọc thì tỷ lệ lít/100km không đáng tin, loại khỏi TB đội xe & khỏi so sánh
+  const MIN_TRIPS = 5; // xe chạy quá ít chuyến thì tỷ lệ lít/100km không đáng tin, loại khỏi TB đội xe & khỏi so sánh
 
-  // số chuyến thực tế theo xe (đếm distinct Xe+Ngày đi+Chuyến) trong khoảng lọc + tuyến đang chọn
+  // QUAN TRỌNG: mục này KHÔNG dùng theo bộ lọc ngày/tuyến ở trên (currentPeriod/currentRoute).
+  // Lý do: ngày đổ xăng và ngày chạy chuyến không phải lúc nào cũng trùng nhau (đổ 1 lần
+  // chạy được vài chuyến, hoặc đổ trước/sau ngày chạy thực tế) — nếu thu hẹp khung ngày,
+  // km bị chia rất nhỏ trong khi lít mua vẫn rơi trọn vào khung đó, ra tỷ lệ vô nghĩa.
+  // Nên định mức tiêu hao luôn tính trên TOÀN BỘ lịch sử để ra con số ổn định, đáng tin.
   const tripSeen = new Set();
   const tripKmByXe = new Map();
   const tripCountByXe = new Map();
-  filtered.forEach(r=>{
+  RAW.forEach(r=>{
+    if(r.trangThai==='Hủy') return;
     const key = r.xe+'|'+r.ngayDi.getTime()+'|'+r.chuyen;
     if(tripSeen.has(key)) return;
     tripSeen.add(key);
@@ -1078,9 +1384,9 @@ function renderFuelTable(filtered){
     tripCountByXe.set(r.xe, (tripCountByXe.get(r.xe)||0) + 1);
   });
 
-  // lít tiêu thụ theo xe, từ chi phí nhiên liệu (VNĐ) / giá theo ngày
+  // lít tiêu thụ theo xe, từ chi phí nhiên liệu (VNĐ) / giá theo ngày — toàn bộ COST_ROWS
   const litByXe = new Map();
-  costsInRange(from, to).forEach(r=>{
+  COST_ROWS.forEach(r=>{
     const vnd = r.categories[fuelCatName] || 0;
     if(!vnd) return;
     const price = FUEL_PRICE_LOOKUP(r.ngay);
@@ -1099,7 +1405,7 @@ function renderFuelTable(filtered){
   });
 
   // TB đội xe = tổng lít / tổng km của các xe đủ tin cậy (weighted theo quãng đường thực chạy,
-  // không lấy trung bình cộng của từng tỷ lệ — tránh xe chạy 1-2 chuyến kéo lệch TB chung)
+  // không lấy trung bình cộng của từng tỷ lệ — tránh xe chạy ít chuyến kéo lệch TB chung)
   const reliableRows = rows.filter(r=>r.reliable);
   const totalKmReliable = reliableRows.reduce((s,r)=>s+r.km,0);
   const totalLitReliable = reliableRows.reduce((s,r)=>s+r.lit,0);
@@ -1124,10 +1430,10 @@ function renderFuelTable(filtered){
       <td class="num mono">${r.per100!=null ? r.per100.toFixed(2) : '—'}</td>
       <td>${assessment}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu trong khoảng lọc</td></tr>';
+  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu</td></tr>';
 
   $('#fuelNote').textContent = fleetAvg
-    ? `Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km (tính trên tổng lít ÷ tổng km của ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến trong kỳ lọc) · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Xe chạy <${MIN_TRIPS} chuyến không đủ tin cậy để so sánh nên không gắn nhãn.`
+    ? `Tính trên TOÀN BỘ dữ liệu (không đổi theo bộ lọc ngày/tuyến ở trên, vì ngày đổ xăng và ngày chạy không trùng nhau) · Định mức trung bình đội xe: ${fleetAvg.toFixed(2)} lít/100km, dựa trên tổng lít ÷ tổng km của ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến · Km ước tính = số chuyến thực tế × quãng đường tuyến (Quảng Ngãi 890km, Đà Lạt 310km, 1 chiều) · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Xe chạy <${MIN_TRIPS} chuyến chưa đủ tin cậy nên không gắn nhãn.`
     : '';
 }
 
@@ -1336,8 +1642,81 @@ function openVehicleDetail(xe){
     </tr>`;
   }).join('') || '<tr><td colspan="4" style="color:var(--text-lo)">Không có dữ liệu</td></tr>';
 
+  renderVehicleDetailCost(xe, from, to);
+  setupVehicleDetailSeatmap(xe);
+
   $('#vehicleDetailOverlay').classList.add('open');
 }
+
+function renderVehicleDetailCost(xe, from, to){
+  const costSection = $('#vehicleDetailCostSection');
+  const costEmpty = $('#vehicleDetailCostEmpty');
+  if(!tierIsPro()){
+    costSection.style.display = 'none';
+    costEmpty.style.display = 'none';
+    return;
+  }
+
+  const costRows = costsInRange(from, to).filter(r=>r.xe===xe);
+  const byCategory = new Map();
+  let grandTotal = 0;
+  costRows.forEach(r=>{
+    Object.entries(r.categories).forEach(([cat,v])=>{
+      if(!v) return;
+      byCategory.set(cat, (byCategory.get(cat)||0)+v);
+      grandTotal += v;
+    });
+  });
+
+  if(!grandTotal){
+    costSection.style.display = 'none';
+    costEmpty.style.display = 'block';
+    destroy('vehicleDetailCost');
+    return;
+  }
+  costSection.style.display = 'block';
+  costEmpty.style.display = 'none';
+
+  const daysWithCost = new Set(costRows.map(r=>r.ngay.getTime())).size;
+  const paidRevenue = RAW.filter(r=>r.xe===xe && r.trangThai==='Đã thanh toán' && inRange(r.ngayDi, from, to))
+    .reduce((s,r)=>s+r.thanhTien,0);
+  const profit = paidRevenue - grandTotal;
+  const margin = paidRevenue ? profit/paidRevenue : 0;
+
+  $('#vehicleDetailCostKpis').innerHTML = `
+    <div class="tier-card">
+      <div class="tier-label">Tổng chi phí</div>
+      <div class="tier-count mono">${fmtVNDShort(grandTotal)} đ</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Số ngày phát sinh</div>
+      <div class="tier-count mono">${fmtInt(daysWithCost)}</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Lợi nhuận (thực thu − chi phí)</div>
+      <div class="tier-count mono" style="color:${profit<0?'var(--danger)':'var(--teal)'}">${fmtVNDShort(profit)} đ</div>
+    </div>
+    <div class="tier-card">
+      <div class="tier-label">Biên lợi nhuận</div>
+      <div class="tier-count mono" style="color:${margin<0?'var(--danger)':'var(--text-lo)'}">${paidRevenue ? fmtPct(margin) : '—'}</div>
+    </div>`;
+
+  const catRows = Array.from(byCategory.entries()).map(([cat,v])=>({cat, v})).sort((a,b)=>b.v-a.v);
+  $('#vehicleDetailCostTable tbody').innerHTML = catRows.map(r=>`
+    <tr>
+      <td>${r.cat}</td>
+      <td class="num mono">${fmtVND(r.v)}</td>
+      <td class="num mono">${grandTotal ? fmtPct(r.v/grandTotal) : '0%'}</td>
+    </tr>`).join('');
+
+  destroy('vehicleDetailCost');
+  charts.vehicleDetailCost = new Chart($('#vehicleDetailCostChart'), {
+    type:'doughnut',
+    data:{ labels: catRows.map(r=>r.cat), datasets:[{ data: catRows.map(r=>r.v), backgroundColor: COLORS.palette, borderColor:'#121A2B', borderWidth:3 }]},
+    options:{ maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:10, padding:10, font:{size:10}}}, tooltip:{callbacks:{label:(c)=> ' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} }
+  });
+}
+
 function closeVehicleDetail(){ $('#vehicleDetailOverlay').classList.remove('open'); }
 $('#vehicleDetailClose').addEventListener('click', closeVehicleDetail);
 $('#vehicleDetailOverlay').addEventListener('click', (e)=>{ if(e.target.id==='vehicleDetailOverlay') closeVehicleDetail(); });
