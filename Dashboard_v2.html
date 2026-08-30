@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="vi" data-mode="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUẤN TÚ LIMOUSINE — Trung tâm điều hành</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220; --surface:#121A2B; --surface-2:#182238; --line:#263252; --line-soft:#1B2540;
+    --text-hi:#EDF1F9; --text-lo:#8C96AF;
+    --amber:#F2B705; --amber-dim:#7A5F0A; --teal:#5EEAD4; --teal-dim:#215B52;
+    --danger:#FB7185; --danger-dim:#5C2530; --blue:#3B82F6; --pink:#F472B6;
+    --radius:22px; --radius-sm:14px; --sidebar-w:230px;
+    --glass-bg: rgba(18,26,43,0.72); --glass-border: rgba(255,255,255,0.07);
+  }
+  html[data-mode="light"]{
+    --bg:#F3F5FA; --surface:#FFFFFF; --surface-2:#F1F3F9; --line:#E1E5F0; --line-soft:#EBEEF5;
+    --text-hi:#111827; --text-lo:#667085;
+    --glass-bg: rgba(255,255,255,0.72); --glass-border: rgba(17,24,39,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(900px 500px at 8% -6%, rgba(242,183,5,0.10), transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, rgba(94,234,212,0.08), transparent 60%),
+      radial-gradient(700px 500px at 60% 100%, rgba(59,130,246,0.06), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    color:var(--text-hi); font-family:'Inter',sans-serif; min-height:100vh;
+  }
+  .display{font-family:'Space Grotesk', sans-serif;}
+  .mono{font-family:'JetBrains Mono', monospace;}
+
+  /* ---------- App shell: floating dock sidebar (macOS-style) + content ---------- */
+  #app{ display:none; }
+  #app.ready{ display:flex; min-height:100vh; gap:14px; padding:14px; }
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:var(--glass-bg); backdrop-filter:blur(20px) saturate(1.4);
+    -webkit-backdrop-filter:blur(20px) saturate(1.4); border:1px solid var(--glass-border); border-radius:var(--radius);
+    display:flex; flex-direction:column; position:sticky; top:14px; height:calc(100vh - 28px); overflow-y:auto;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.45);
+  }
+  .sidebar-brand{ padding:20px 18px 14px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--glass-border); }
+  .sidebar-brand img{ width:38px; height:38px; border-radius:11px; object-fit:contain; background:var(--surface-2); padding:3px; }
+  .sidebar-brand .name{ font-size:13px; font-weight:700; line-height:1.25; }
+  .sidebar-brand .sub{ font-size:10.5px; color:var(--text-lo); }
+  .nav-group-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-lo); padding:16px 20px 6px; }
+  .nav-btn{
+    display:flex; align-items:center; gap:11px; width:calc(100% - 20px); margin:2px 10px; text-align:left; background:none; border:none;
+    color:var(--text-lo); padding:10px 12px; font-size:13.5px; font-family:'Inter',sans-serif; cursor:pointer;
+    border-radius:12px; transition:background .16s ease, color .16s ease, transform .12s ease;
+  }
+  .nav-btn .ic{ font-size:16px; width:20px; text-align:center; }
+  .nav-btn:hover{ background:var(--surface-2); color:var(--text-hi); }
+  .nav-btn:active{ transform:scale(0.98); }
+  .nav-btn.active{ background:linear-gradient(135deg, var(--amber), #ffcf3d); color:#1a1400; font-weight:700; box-shadow:0 6px 16px -6px rgba(242,183,5,0.5); }
+  .nav-btn.pro-locked{ opacity:.4; cursor:not-allowed; }
+  .nav-btn .lock{ margin-left:auto; font-size:11px; }
+  .sidebar-foot{ margin-top:auto; padding:14px 16px; border-top:1px solid var(--glass-border); }
+  .content{ flex:1; min-width:0; padding:8px 10px 60px; }
+
+  /* Mobile: sidebar collapses to floating bottom dock */
+  .mobile-topbar{ display:none; }
+  @media(max-width:860px){
+    #app.ready{ flex-direction:column; padding:10px; gap:10px; }
+    .sidebar{ position:fixed; bottom:12px; left:12px; right:12px; top:auto; width:auto; height:auto; flex-direction:row;
+      overflow-x:auto; overflow-y:hidden; z-index:80; border-radius:20px; }
+    .sidebar-brand, .nav-group-label, .sidebar-foot{ display:none; }
+    .nav-btn{ flex-direction:column; gap:3px; padding:9px 14px; font-size:10px; white-space:nowrap; margin:6px 4px; }
+    .content{ padding:6px 4px 90px; }
+    .mobile-topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; }
+  }
+
+  /* ---------- Loading / upload fallback ---------- */
+  #loadingScreen{ margin-top:80px; text-align:center; padding:60px 20px; }
+  #loadingScreen .spinner{ width:40px; height:40px; margin:0 auto 20px; border:3px solid var(--line); border-top-color:var(--amber); border-radius:50%; animation:spin 0.9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #loadingScreen h2{font-size:17px; font-weight:600; margin:0 0 6px;}
+  #loadingScreen p{color:var(--text-lo); font-size:13px;}
+  #loadErrorBox{ display:none; margin-top:20px; padding:14px 18px; border-radius:10px; background:rgba(251,113,133,0.08); border:1px solid var(--danger-dim); color:var(--danger); font-size:13px; text-align:left; max-width:640px; margin:20px auto 0; }
+  #dropzone{ margin:20px auto 0; max-width:640px; border:1.5px dashed var(--line); border-radius:var(--radius); background:var(--surface); padding:40px 24px; text-align:center; cursor:pointer; display:none; }
+  #dropzone.drag{border-color:var(--amber); background:var(--surface-2);}
+  #dropzone h2{font-size:17px; margin:0 0 8px; font-weight:600;}
+  #dropzone p{color:var(--text-lo); font-size:13px; margin:0 0 16px; line-height:1.6;}
+  .btn{ display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg, var(--amber), #ffcf3d); color:#1a1400; border:none; padding:10px 20px; border-radius:999px; font-weight:600; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif; transition:transform .12s ease, box-shadow .12s ease; box-shadow:0 6px 16px -6px rgba(242,183,5,0.45); }
+  .btn:hover{ transform:translateY(-1px); box-shadow:0 10px 22px -8px rgba(242,183,5,0.55); }
+  .btn:active{ transform:scale(0.97); }
+  .btn:hover{ filter:brightness(1.05); }
+  .btn.ghost{background:transparent; color:var(--text-hi); border:1px solid var(--line);}
+  .btn.ghost:hover{border-color:var(--amber);}
+  .btn.danger{ background:transparent; border:1px solid var(--danger-dim); color:var(--danger); }
+  #fileInput{display:none;}
+  #filename{font-size:12px; color:var(--text-lo); margin-top:14px;}
+
+  /* ---------- Top bar (title + tier + filters) ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .topbar h1{ font-size:19px; margin:0; font-weight:700; }
+  .topbar .view-desc{ font-size:12.5px; color:var(--text-lo); margin-top:2px; }
+  .tier-badge{ display:flex; align-items:center; gap:8px; padding:6px 13px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:0.3px; }
+  .tier-badge.lite{ background:rgba(140,150,175,0.14); color:var(--text-lo); border:1px solid var(--line); }
+  .tier-badge.pro{ background:rgba(94,234,212,0.14); color:var(--teal); border:1px solid var(--teal-dim); }
+  .pro-unlock{ display:flex; align-items:center; gap:8px; background:rgba(242,183,5,0.06); border:1.5px solid var(--amber-dim); border-radius:11px; padding:7px 11px; }
+  .pro-unlock input{ width:110px; background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:6px 9px; border-radius:7px; font-size:12px; font-family:'JetBrains Mono',monospace; }
+  .pro-unlock button{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:6px 11px; border-radius:7px; font-size:11.5px; cursor:pointer; }
+  .pro-msg{font-size:11px; margin-left:4px;}
+  .pro-msg.err{color:var(--danger);} .pro-msg.ok{color:var(--teal);}
+
+  .filterbar{ background:var(--glass-bg); backdrop-filter:blur(16px) saturate(1.3); -webkit-backdrop-filter:blur(16px) saturate(1.3); border:1px solid var(--glass-border); border-radius:var(--radius-sm); padding:13px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:20px; position:sticky; top:14px; z-index:40; box-shadow:0 10px 26px -16px rgba(0,0,0,0.4); }
+  .filterbar .label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-lo); margin-right:2px;}
+  .chip{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-lo); font-size:12.5px; padding:7px 14px; border-radius:999px; cursor:pointer; font-family:'Inter',sans-serif; transition:all .14s ease; }
+  .chip:hover{color:var(--text-hi); transform:translateY(-1px);}
+  .chip.active{background:linear-gradient(135deg, var(--amber), #ffcf3d); color:#1a1400; border-color:transparent; font-weight:600; box-shadow:0 6px 14px -6px rgba(242,183,5,0.5);}
+  select, input[type=date], input[type=text]{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:7px 11px; border-radius:8px; font-size:12.5px; font-family:'Inter',sans-serif; }
+  .spacer{flex:1;}
+  #customDates{display:none; align-items:center; gap:6px;}
+
+  /* ---------- Views ---------- */
+  .view-panel{ display:none; }
+  .view-panel.active{ display:block; }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+  .kpi-card{ background:linear-gradient(160deg, rgba(242,183,5,0.14), rgba(242,183,5,0.03)); border:1px solid var(--glass-border); border-radius:var(--radius); padding:16px 18px 14px; position:relative; overflow:hidden; transition:transform .16s ease; }
+  .kpi-card:hover{ transform:translateY(-2px); }
+  .kpi-card.c-danger{ background:linear-gradient(160deg, rgba(251,113,133,0.16), rgba(251,113,133,0.03)); }
+  .kpi-card.c-teal{ background:linear-gradient(160deg, rgba(94,234,212,0.16), rgba(94,234,212,0.03)); }
+  .kpi-card.c-blue{ background:linear-gradient(160deg, rgba(59,130,246,0.16), rgba(59,130,246,0.03)); }
+  .kpi-label{font-size:10.5px; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px;}
+  .kpi-value{font-size:clamp(16px, 1.8vw, 25px); font-weight:700;}
+  .kpi-value.danger{color:var(--danger);}
+  .kpi-sub{font-size:11px; color:var(--text-lo); margin-top:6px;}
+
+  .grid2{display:grid; grid-template-columns:1.5fr 1fr; gap:16px;}
+  @media(max-width:980px){.grid2{grid-template-columns:1fr;}}
+  .card{ background:var(--glass-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--glass-border); border-radius:var(--radius); padding:20px 22px; margin-bottom:16px; box-shadow:0 14px 34px -22px rgba(0,0,0,0.4); }
+  .card h3{margin:0 0 4px; font-size:14.5px; font-weight:600;}
+  .card .card-hint{font-size:11.5px; color:var(--text-lo); margin-bottom:14px;}
+  canvas{max-width:100%;}
+
+  .alert-row{ display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+  .alert-row:last-child{border-bottom:none;}
+  .alert-row .dot{ width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .alert-row.danger .dot{background:var(--danger);}
+  .alert-row.warn .dot{background:var(--amber);}
+  .alert-row.ok .dot{background:var(--teal);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; color:var(--text-lo); font-weight:500; font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px; padding:9px 10px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--glass-bg); backdrop-filter:blur(10px); cursor:pointer; white-space:nowrap;}
+  th:hover{color:var(--text-hi);}
+  th.num, td.num{text-align:right; font-family:'JetBrains Mono',monospace;}
+  td{padding:9px 10px; border-bottom:1px solid var(--line-soft);}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  .table-scroll{ max-height:560px; overflow-y:auto; border-radius:10px; }
+  .barcell{height:5px; border-radius:3px; background:var(--amber);}
+  .tag{ display:inline-block; font-size:10.5px; padding:2px 8px; border-radius:5px; font-weight:600; }
+  .tag.qn{background:rgba(242,183,5,0.14); color:var(--amber);}
+  .tag.dl{background:rgba(94,234,212,0.14); color:var(--teal);}
+  .row-detail-btn{ background:var(--surface-2); border:1px solid var(--line); color:var(--text-hi); padding:6px 13px; border-radius:999px; font-size:11px; cursor:pointer; transition:all .12s; }
+  .row-detail-btn:hover{border-color:var(--amber); color:var(--amber);}
+
+  /* seat map (kept) */
+  .seatmap-controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;}
+  .seatmap-back{display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:18px; padding-bottom:18px; border-bottom:1px dashed var(--line);}
+  .seatmap-wrap{display:flex; gap:28px; flex-wrap:wrap; justify-content:center;}
+  .seatmap-col{display:flex; flex-direction:column; gap:8px; align-items:center;}
+  .seatmap-col-label{font-weight:700; font-size:11px; color:var(--text-lo); letter-spacing:.5px; text-transform:uppercase;}
+  .seat-row{display:flex; gap:8px;}
+  .seat-cell{width:56px; height:44px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; border:1.5px solid var(--line);}
+  .seat-cell.empty{visibility:hidden;}
+  .seat-cell.trong{background:var(--surface-2); color:var(--text-lo); border-style:dashed;}
+  .seat-cell.dathanhtoan{background:rgba(242,183,5,0.22); border-color:var(--amber); color:#F2B705;}
+  .seat-cell.vexere{background:rgba(59,130,246,0.22); border-color:var(--blue); color:var(--blue);}
+  .seat-cell.datcho{background:rgba(244,114,182,0.22); border-color:var(--pink); color:var(--pink);}
+  .seat-cell.huy{background:rgba(255,255,255,0.10); border-color:var(--line); color:var(--text-lo); opacity:.65;}
+  .seat-cell .price{font-size:9px; font-weight:500; opacity:.85;}
+  .seat-legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:12px; color:var(--text-lo);}
+  .seat-legend .dot{width:11px;height:11px;border-radius:4px; display:inline-block; margin-right:6px; vertical-align:middle; border:1.5px solid var(--line);}
+
+  /* drawer (vehicle detail) */
+  .drawer-overlay{ display:none; position:fixed; inset:0; background:rgba(4,7,15,0.55); backdrop-filter:blur(3px); z-index:100; }
+  .drawer-overlay.open{display:block;}
+  .drawer{ position:fixed; top:14px; right:14px; bottom:14px; width:560px; max-width:calc(94vw - 28px); background:var(--glass-bg); backdrop-filter:blur(24px) saturate(1.4); -webkit-backdrop-filter:blur(24px) saturate(1.4); border:1px solid var(--glass-border); border-radius:var(--radius); box-shadow:-20px 0 60px rgba(0,0,0,0.4); display:flex; flex-direction:column; overflow:hidden; }
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line);}
+  .drawer-head h3{margin:0; font-size:15.5px;}
+  .drawer-close{background:none; border:none; color:var(--text-lo); font-size:17px; cursor:pointer;}
+  .drawer-close:hover{color:var(--text-hi);}
+  .drawer-body{padding:20px 22px; overflow-y:auto; flex:1;}
+  .tier-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px;}
+  .tier-card{ background:var(--surface-2); border:1px solid var(--glass-border); border-radius:16px; padding:13px 15px; }
+  .tier-label{font-size:10.5px; color:var(--text-lo); text-transform:uppercase; margin-bottom:6px;}
+  .tier-count{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;}
+  .drawer-section-title{ font-size:12.5px; font-weight:600; margin:18px 0 10px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px; }
+
+  #loadNewBtn{position:fixed; bottom:20px; right:26px; z-index:5;}
+  @media(max-width:860px){ #loadNewBtn{bottom:70px;} }
+  ::-webkit-scrollbar{height:8px; width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <h2 class="display">ĐANG TẢI DỮ LIỆU — VUI LÒNG CHỜ…</h2>
+  <p>Đang tải dữ liệu vận hành, xin chờ trong giây lát…</p>
+  <div id="loadErrorBox"></div>
+</div>
+
+<div id="dropzone">
+  <div style="font-size:28px; margin-bottom:10px;">🎫</div>
+  <h2 class="display">Không tự tải được — thử tải file thủ công</h2>
+  <p>Kéo-thả hoặc bấm chọn file .xlsx / .csv xuất từ hệ thống bán vé. File chỉ đọc ngay trên trình duyệt.</p>
+  <button class="btn" id="pickBtn">Chọn file dữ liệu</button>
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  <div id="filename"></div>
+</div>
+
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="data:image/png;base64,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" alt="logo">
+      <div>
+        <div class="name">TUẤN TÚ LIMOUSINE</div>
+        <div class="sub">Trung tâm điều hành</div>
+      </div>
+    </div>
+
+    <div class="nav-group-label">Điều hành</div>
+    <button class="nav-btn active" data-view="overview"><span class="ic">🏠</span> Tổng quan</button>
+    <button class="nav-btn" data-view="fleet"><span class="ic">🚌</span> Đội xe</button>
+
+    <div class="nav-group-label">Vận hành</div>
+    <button class="nav-btn" data-view="seatmap"><span class="ic">💺</span> Sơ đồ giường<span class="lock" data-pro-lock>🔒</span></button>
+    <button class="nav-btn" data-view="fuel"><span class="ic">⛽</span> Định mức nhiên liệu<span class="lock" data-pro-lock>🔒</span></button>
+
+    <div class="nav-group-label">Con người &amp; kênh bán</div>
+    <button class="nav-btn" data-view="people"><span class="ic">🧑‍✈️</span> Con người</button>
+    <button class="nav-btn" data-view="channels"><span class="ic">🏢</span> Kênh bán hàng</button>
+    <button class="nav-btn" data-view="cargo"><span class="ic">📦</span> Ký gửi hàng hoá<span class="lock" data-pro-lock>🔒</span></button>
+
+    <div class="sidebar-foot">
+      <div class="tier-badge lite" id="tierBadge" style="margin-bottom:10px; width:100%; justify-content:center;">🔒 LITE</div>
+      <div id="proUnlockBox">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <input type="password" id="proCodeInput" placeholder="Mã Pro" style="width:100%;">
+          <button class="btn ghost" id="proUnlockBtn" style="width:100%; justify-content:center;">🔑 Mở khoá Pro</button>
+        </div>
+        <div class="pro-msg" id="proMsg"></div>
+      </div>
+      <button class="btn danger" id="proLogoutBtn" style="display:none; width:100%; justify-content:center; margin-top:6px;">✕ Thoát Pro</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="mobile-topbar">
+      <div class="name display" style="font-weight:700; font-size:14px;">TUẤN TÚ LIMOUSINE</div>
+      <div class="tier-badge lite" id="tierBadgeMobile">🔒 LITE</div>
+    </div>
+
+    <div class="topbar">
+      <div>
+        <h1 id="viewTitle">Tổng quan</h1>
+        <div class="view-desc" id="viewDesc">Bức tranh toàn cảnh công ty trong kỳ đang lọc</div>
+      </div>
+    </div>
+
+    <div class="filterbar">
+      <span class="label">Kỳ</span>
+      <div class="chip" data-period="yesterday">Hôm qua</div>
+      <div class="chip" data-period="7d">7 ngày</div>
+      <div class="chip" data-period="30d">30 ngày</div>
+      <div class="chip" data-period="month">Tháng này</div>
+      <div class="chip" data-period="quarter">Quý này</div>
+      <div class="chip active" data-period="all">Toàn bộ</div>
+      <div class="chip" data-period="custom">Tuỳ chọn</div>
+      <div id="customDates"><input type="date" id="dateFrom"> <span style="color:var(--text-lo)">→</span> <input type="date" id="dateTo"></div>
+      <div class="spacer"></div>
+      <span class="label">Tuyến</span>
+      <select id="routeFilter"><option value="__all">Tất cả tuyến</option></select>
+    </div>
+
+    <!-- ============ VIEW: TỔNG QUAN ============ -->
+    <section class="view-panel active" id="view-overview">
+      <div class="kpi-grid" id="ovKpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Doanh thu &amp; chi phí theo ngày</h3>
+          <div class="card-hint" id="ovTrendHint">Nét liền = thực thu</div>
+          <canvas id="ovTrendChart" height="90"></canvas>
+        </div>
+        <div class="card">
+          <h3>Cảnh báo cần chú ý</h3>
+          <div class="card-hint">Tự động rà theo kỳ đang lọc</div>
+          <div id="ovAlerts"></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Doanh thu theo tuyến</h3>
+          <canvas id="ovRouteChart" height="160"></canvas>
+        </div>
+        <div class="card">
+          <h3>Cơ cấu doanh thu</h3>
+          <div class="card-hint" id="ovMixHint">Theo trạng thái vé</div>
+          <canvas id="ovMixChart" height="160"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: ĐỘI XE ============ -->
+    <section class="view-panel" id="view-fleet">
+      <div class="card" style="margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="fleetSearch" placeholder="Tìm biển số…" style="flex:1; min-width:160px;">
+        <span class="card-hint" id="fleetHint" style="margin:0;">Bấm tiêu đề cột để sắp xếp · bấm 1 dòng để xem chi tiết</span>
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table id="fleetTable">
+            <thead><tr id="fleetTableHead"></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: SƠ ĐỒ GIƯỜNG (giữ nguyên chức năng) ============ -->
+    <section class="view-panel" id="view-seatmap">
+      <div class="card">
+        <div class="seatmap-controls">
+          <select id="seatmapRoute"><option value="">— Chọn tuyến —</option></select>
+          <input type="date" id="seatmapDate">
+          <select id="seatmapVehicle"><option value="">— Chọn biển số —</option></select>
+          <span class="card-hint" id="seatmapConfigHint" style="margin:0;"></span>
+        </div>
+        <div id="seatmapEmpty" class="card-hint">Chọn đủ Tuyến, Ngày đi và Biển số xe để xem sơ đồ giường.</div>
+        <div id="seatmapContent" style="display:none;">
+          <div class="seat-legend">
+            <span><span class="dot" style="background:rgba(242,183,5,0.35); border-color:#F2B705;"></span>Đã thanh toán</span>
+            <span><span class="dot" style="background:rgba(59,130,246,0.35); border-color:#3B82F6;"></span>Đã TT — Vé xe rẻ</span>
+            <span><span class="dot" style="background:rgba(244,114,182,0.35); border-color:#F472B6;"></span>Đặt chỗ</span>
+            <span><span class="dot" style="background:rgba(255,255,255,0.14);"></span>Đã huỷ</span>
+            <span><span class="dot" style="background:var(--surface-2); border-style:dashed;"></span>Ghế trống</span>
+          </div>
+          <div id="seatmapGrid"></div>
+          <div id="seatmapUnknown" class="card-hint" style="margin-top:14px; display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: NHIÊN LIỆU (giữ nguyên chức năng) ============ -->
+    <section class="view-panel" id="view-fuel">
+      <div class="card">
+        <div class="table-scroll">
+          <table id="fuelTable">
+            <thead><tr><th>Biển số</th><th class="num">Số chuyến</th><th class="num">Km ước tính</th><th class="num">Lít tiêu thụ</th><th class="num">Lít/100km</th><th>Đánh giá</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-hint" id="fuelNote" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: CON NGƯỜI ============ -->
+    <section class="view-panel" id="view-people">
+      <div class="grid2">
+        <div class="card">
+          <h3>Top kíp lái theo doanh thu</h3>
+          <div class="table-scroll" style="max-height:460px;">
+            <table id="driverTable"><thead><tr><th>Kíp lái</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Top nhân viên bán vé</h3>
+          <div class="table-scroll" style="max-height:460px;">
+            <table id="staffTable"><thead><tr><th>Nhân viên</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: KÊNH BÁN HÀNG ============ -->
+    <section class="view-panel" id="view-channels">
+      <div class="grid2">
+        <div class="card">
+          <h3>Chi nhánh / đại lý</h3>
+          <div class="card-hint">Doanh thu quy đổi theo điểm ghi nhận</div>
+          <canvas id="agencyChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Kênh đặt vé</h3>
+          <canvas id="channelChart" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: KÝ GỬI HÀNG HOÁ ============ -->
+    <section class="view-panel" id="view-cargo">
+      <div class="kpi-grid" id="cargoKpis" style="grid-template-columns:repeat(3,1fr);"></div>
+      <div class="card" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="cargoSearch" placeholder="Tìm biển số hoặc nội dung hàng hoá…" style="flex:1; min-width:200px;">
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table id="cargoTable">
+            <thead><tr><th>Ngày</th><th>Biển số</th><th>Nội dung hàng hoá</th><th class="num">Số tiền</th><th>Ghi chú</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ DRAWER: Chi tiết 1 xe ============ -->
+<div class="drawer-overlay" id="vehicleDrawerOverlay">
+  <div class="drawer">
+    <div class="drawer-head">
+      <h3>Chi tiết vận hành — <span id="drawerPlate" class="mono"></span></h3>
+      <button class="drawer-close" id="drawerClose">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="card-hint" id="drawerRange" style="margin-bottom:14px;"></div>
+      <div class="tier-grid" id="drawerTierGrid"></div>
+      <div class="tier-grid" id="drawerProfitGrid" style="display:none; margin-top:-6px;"></div>
+      <table id="drawerTicketTable">
+        <thead><tr><th>Trạng thái</th><th class="num">Số vé</th><th class="num">Doanh thu</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="drawerCostBlock" style="display:none;">
+        <div class="drawer-section-title">💰 Chi phí vận hành <span style="font-weight:400; color:var(--text-lo); font-size:11px;">(tách theo tuyến nếu ChiPhi có gán cột Tuyến)</span></div>
+        <table id="drawerCostTable"><thead><tr><th>Khoản mục</th><th class="num">Số tiền</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div id="drawerCargoBlock" style="display:none;">
+        <div class="drawer-section-title">📦 Ký gửi hàng hoá</div>
+        <table id="drawerCargoTable"><thead><tr><th>Ngày</th><th>Nội dung</th><th class="num">Số tiền</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn ghost" id="drawerSeatmapBtn" style="width:100%; justify-content:center;">💺 Xem sơ đồ giường của xe này</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="btn ghost" id="loadNewBtn" style="display:none;">↻ Làm mới dữ liệu</button>
+
+<script>
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>Array.from(el.querySelectorAll(s));
+
+const COLORS = { amber:'#F2B705', teal:'#5EEAD4', danger:'#FB7185', blue:'#3B82F6', pink:'#F472B6', textlo:'#8C96AF',
+  palette:['#F2B705','#5EEAD4','#7C9EF2','#F28C5E','#C084FC','#84CC16','#F472B6','#38BDF8','#FACC15','#4ADE80','#FB923C','#A78BFA'] };
+function gridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--grid-line').trim() || 'rgba(255,255,255,0.05)'; }
+
+let RAW = [], COST_ROWS = [], CARGO_ROWS = [], COST_CATEGORIES = [];
+let FUEL_PRICE_LOOKUP = null, ROUTE_KM = {};
+let TIER = 'lite', PRO_NAME = null;
+let charts = {};
+let currentPeriod = 'all', customFrom = null, customTo = null, currentRoute = '__all';
+let lastFiltered = [];
+
+function tierIsPro(){ return TIER === 'pro'; }
+function fmtVND(n){ if(n==null||isNaN(n)) return '0'; return Math.round(n).toLocaleString('vi-VN'); }
+function fmtVNDShort(n){
+  if(n==null||isNaN(n)) return '0';
+  const abs = Math.abs(n);
+  if(abs >= 1e9) return (n/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2}) + ' tỷ';
+  if(abs >= 1e6) return (n/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1}) + ' triệu';
+  return Math.round(n).toLocaleString('vi-VN');
+}
+function fmtInt(n){ return Math.round(n).toLocaleString('vi-VN'); }
+function fmtPct(n){ return (n*100).toFixed(1)+'%'; }
+function toDateOnly(d){ if(!(d instanceof Date) || isNaN(d)) return null; return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function excelSerialToDate(v){
+  if(typeof v === 'number'){ return new Date(Math.round((v-25569)*86400*1000)); }
+  if(typeof v === 'string'){
+    const s = v.trim();
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m){ return new Date(Number(m[3]), Number(m[2])-1, Number(m[1])); }
+    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(m){ return new Date(Number(m[1]), Number(m[2])-1, Number(m[3])); }
+    const parsed = new Date(s);
+    if(!isNaN(parsed)) return parsed;
+    return null;
+  }
+  return v;
+}
+function inRange(d, from, to){ if(from && d < from) return false; if(to && d > to) return false; return true; }
+function routeTag(route){ if(!route) return 'other'; if(route.includes('Quảng Ngãi')) return 'qn'; if(route.includes('Đà Lạt')) return 'dl'; return 'other'; }
+
+function buildHeaderMap(sampleRow){ const map = {}; Object.keys(sampleRow).forEach(k=>{ map[k.trim()] = k; }); return map; }
+function getVal(row, hmap, name){ const key = hmap[name]; return key !== undefined ? row[key] : row[name]; }
+
+function normalize(json){
+  if(!json.length) return [];
+  const hmap = buildHeaderMap(json[0]);
+  return json.map(row=>{
+    let ngayDi = getVal(row, hmap, 'Ngày đi');
+    ngayDi = excelSerialToDate(ngayDi);
+    ngayDi = ngayDi == null ? null : toDateOnly(ngayDi instanceof Date ? ngayDi : new Date(ngayDi));
+    let thanhTien = getVal(row, hmap, 'Thành tiền');
+    thanhTien = typeof thanhTien === 'string' ? parseFloat(thanhTien.replace(/[^\d.-]/g,'')) : (thanhTien||0);
+    return {
+      tuyen: getVal(row, hmap, 'Tuyến') || '(không rõ)',
+      ngayDi, xe: getVal(row, hmap, 'Xe') || '(không rõ)',
+      taiXe: getVal(row, hmap, 'Tài xế') || '(không rõ)',
+      nhanVien: getVal(row, hmap, 'Nhân viên đặt vé') || '(không rõ)',
+      cnDaiLy: getVal(row, hmap, 'CN/Đại lý đặt vé') || '(không rõ)',
+      trangThai: getVal(row, hmap, 'Trạng thái') || '',
+      nguon: getVal(row, hmap, 'Nguồn đặt vé') || '(không rõ)',
+      chuyen: getVal(row, hmap, 'Chuyến') || '',
+      thanhTien: isNaN(thanhTien) ? 0 : thanhTien,
+      maGhe: String(getVal(row, hmap, 'Mã ghế') || '').trim().toUpperCase(),
+      cauHinh: String(getVal(row, hmap, 'Cấu hình') || '').trim()
+    };
+  }).filter(r=>r.ngayDi);
+}
+
+function normalizeCost(json){
+  if(!json.length) return [];
+  const hmap = buildHeaderMap(json[0]);
+  return json.map(row=>{
+    let ngay = getVal(row, hmap, 'Ngày');
+    ngay = excelSerialToDate(ngay);
+    ngay = ngay == null ? null : toDateOnly(ngay instanceof Date ? ngay : new Date(ngay));
+    const xe = getVal(row, hmap, 'Biển số xe') || getVal(row, hmap, 'Xe') || '(không rõ)';
+    const tuyen = String(getVal(row, hmap, 'Tuyến') || '').trim(); // MỚI: có thể để trống — dòng trống vẫn tính, chỉ không tách được theo tuyến
+    const categories = {};
+    Object.keys(row).forEach(k=>{
+      const kt = k.trim();
+      if(kt === 'Biển số xe' || kt === 'Xe' || kt === 'Ngày' || kt === 'Tuyến') return;
+      let v = row[k];
+      if(typeof v === 'string') v = parseFloat(v.replace(/[^\d.-]/g,'')) || 0;
+      categories[kt] = isNaN(v) ? 0 : (v || 0);
+    });
+    return { xe, ngay, tuyen, categories };
+  }).filter(r=>r.ngay);
+}
+
+// Lọc chi phí theo khoảng ngày + tuyến đang chọn ở đầu trang.
+// Dòng chưa gán Tuyến (r.tuyen rỗng) vẫn được tính vào MỌI tuyến đang lọc — để không bị sót chi phí,
+// nhưng sẽ được đếm riêng (unTaggedCount) để cảnh báo a bổ sung cột Tuyến cho chính xác hơn.
+function costsForView(from, to, route){
+  const rows = costsInRange(from, to);
+  if(route === '__all') return { rows, unTaggedCount: rows.filter(r=>!r.tuyen).length, isFiltered:false };
+  const matched = rows.filter(r=> !r.tuyen || r.tuyen===route);
+  return { rows: matched, unTaggedCount: matched.filter(r=>!r.tuyen).length, isFiltered:true };
+}
+
+function normalizeCargo(json){
+  if(!json.length) return [];
+  const hmap = buildHeaderMap(json[0]);
+  return json.map(row=>{
+    let ngay = getVal(row, hmap, 'Ngày');
+    ngay = excelSerialToDate(ngay);
+    ngay = ngay == null ? null : toDateOnly(ngay instanceof Date ? ngay : new Date(ngay));
+    const xe = getVal(row, hmap, 'Biển số xe') || getVal(row, hmap, 'Xe') || '(không rõ)';
+    let amount = getVal(row, hmap, 'Số tiền');
+    amount = typeof amount === 'string' ? parseFloat(amount.replace(/[^\d.-]/g,'')) : (amount||0);
+    const item = getVal(row, hmap, 'Nội dung hàng hoá') || getVal(row, hmap, 'Nội dung hàng hóa') || getVal(row, hmap, 'Tên hàng hoá') || getVal(row, hmap, 'Mặt hàng') || '';
+    const note = getVal(row, hmap, 'Ghi chú') || '';
+    return { xe, ngay, amount: isNaN(amount)?0:amount, item, note };
+  }).filter(r=>r.ngay);
+}
+
+function buildFuelPriceLookup(fuelPrices){
+  const sorted = fuelPrices
+    .map(p=>({date: toDateOnly(excelSerialToDate(p.ngay) instanceof Date ? excelSerialToDate(p.ngay) : new Date(p.ngay)), price: Number(p.gia)}))
+    .filter(p=>p.date && !isNaN(p.price)).sort((a,b)=>a.date-b.date);
+  return function(targetDate){
+    let best = null;
+    for(const p of sorted){ if(p.date <= targetDate) best = p; else break; }
+    if(!best && sorted.length) best = sorted[0];
+    return best ? best.price : null;
+  };
+}
+
+function costsInRange(from,to){ return COST_ROWS.filter(r=>inRange(r.ngay, from, to)); }
+function cargoInRange(from,to){ return CARGO_ROWS.filter(r=>inRange(r.ngay, from, to)); }
+
+function groupBy(rows, keyFn){
+  const map = new Map();
+  rows.forEach(r=>{
+    const k = keyFn(r);
+    if(!map.has(k)) map.set(k, {count:0, revenue:0, cancelled:0, total:0});
+    const g = map.get(k);
+    g.total++;
+    if(r.trangThai==='Hủy'){ g.cancelled++; } else { g.count++; g.revenue += r.thanhTien; }
+  });
+  return map;
+}
+
+function computeRange(period){
+  const today = toDateOnly(new Date());
+  let from=null, to=today;
+  if(period==='yesterday'){ from = new Date(today); from.setDate(from.getDate()-1); to = from; }
+  else if(period==='7d'){ from = new Date(today); from.setDate(from.getDate()-7); }
+  else if(period==='30d'){ from = new Date(today); from.setDate(from.getDate()-30); }
+  else if(period==='month'){ from = new Date(today.getFullYear(), today.getMonth(), 1); }
+  else if(period==='quarter'){ const q=Math.floor(today.getMonth()/3); from = new Date(today.getFullYear(), q*3, 1); }
+  else if(period==='custom'){ from = customFrom; to = customTo; }
+  else if(period==='all'){ from=null; to=null; }
+  return {from, to};
+}
+
+function vehicleDominantRoute(){
+  const map = new Map();
+  RAW.forEach(r=>{
+    if(!map.has(r.xe)) map.set(r.xe, new Map());
+    const m = map.get(r.xe);
+    m.set(r.tuyen, (m.get(r.tuyen)||0)+1);
+  });
+  const result = new Map();
+  map.forEach((m, xe)=>{
+    let best = null, bestCount = -1;
+    m.forEach((c,t)=>{ if(c>bestCount){ bestCount=c; best=t; } });
+    result.set(xe, best);
+  });
+  return result;
+}
+
+// ---------- Loading ----------
+function showFallbackUpload(msg){
+  $('#loadingScreen .spinner').style.display = 'none';
+  $('#loadingScreen h2').textContent = 'Không lấy được dữ liệu tự động';
+  $('#loadingScreen p').textContent = '';
+  const box = $('#loadErrorBox'); box.style.display = 'block'; box.textContent = msg;
+  $('#dropzone').style.display = 'block';
+}
+function autoLoadFromAppsScript(){
+  if(typeof google === 'undefined' || !google.script || !google.script.run){
+    showFallbackUpload('Trang này cần mở qua link Web App do Apps Script cấp để tự tải data. Dùng tạm chế độ tải file thủ công bên dưới.');
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(result){
+      if(result && result.error){ showFallbackUpload('Lỗi từ Apps Script: ' + result.error); return; }
+      if(!result || !result.rows || !result.rows.length){ showFallbackUpload('Sheet chưa có dữ liệu hoặc sai tên tab RawData.'); return; }
+      TIER = 'lite'; PRO_NAME = null;
+      RAW = normalize(result.rows);
+      updateTierUI();
+      $('#loadingScreen').style.display = 'none';
+      initApp();
+    })
+    .withFailureHandler(function(err){ showFallbackUpload('Không gọi được script: ' + (err && err.message ? err.message : err)); })
+    .getDashboardData('lite');
+}
+autoLoadFromAppsScript();
+
+const dropzone = $('#dropzone'); const fileInput = $('#fileInput');
+$('#pickBtn').addEventListener('click', ()=>fileInput.click());
+dropzone.addEventListener('click', (e)=>{ if(e.target.id!=='pickBtn') fileInput.click(); });
+['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev, e=>{e.preventDefault(); dropzone.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev, e=>{e.preventDefault(); dropzone.classList.remove('drag');}));
+dropzone.addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if(f) handleFile(f); });
+fileInput.addEventListener('change', e=>{ const f = e.target.files[0]; if(f) handleFile(f); });
+$('#loadNewBtn').addEventListener('click', ()=>{
+  $('#app').classList.remove('ready');
+  $('#loadingScreen').style.display='block';
+  $('#loadingScreen .spinner').style.display='block';
+  $('#loadingScreen h2').textContent = 'ĐANG TẢI DỮ LIỆU — VUI LÒNG CHỜ…';
+  $('#loadErrorBox').style.display='none'; $('#dropzone').style.display='none'; $('#loadNewBtn').style.display='none';
+  autoLoadFromAppsScript();
+});
+function handleFile(file){
+  $('#filename').textContent = 'Đang xử lý: ' + file.name + ' …';
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const sheetName = wb.SheetNames.includes('RawData') ? 'RawData' : (wb.SheetNames.includes('Sheet1') ? 'Sheet1' : wb.SheetNames[0]);
+      const json = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:null, raw:true});
+      RAW = normalize(json);
+      $('#filename').textContent = 'Đã nạp ' + RAW.length.toLocaleString('vi-VN') + ' dòng từ "' + file.name + '"';
+      $('#loadingScreen').style.display = 'none';
+      initApp();
+    }catch(err){ $('#filename').textContent = 'Không đọc được file (' + err.message + ')'; }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ---------- Tier / Pro ----------
+function updateTierUI(){
+  const isPro = tierIsPro();
+  [$('#tierBadge'), $('#tierBadgeMobile')].forEach(b=>{
+    b.className = 'tier-badge ' + (isPro ? 'pro' : 'lite');
+    b.textContent = isPro ? ('🔓 PRO' + (PRO_NAME ? ' — '+PRO_NAME : '')) : '🔒 LITE';
+  });
+  $('#proUnlockBox').style.display = isPro ? 'none' : 'block';
+  $('#proLogoutBtn').style.display = isPro ? 'flex' : 'none';
+  $$('.nav-btn[data-pro-lock], .nav-btn').forEach(()=>{});
+  $$('.nav-btn').forEach(btn=>{
+    const needsPro = btn.querySelector('[data-pro-lock]') != null;
+    btn.classList.toggle('pro-locked', needsPro && !isPro);
+  });
+  if(!isPro && ['seatmap','fuel','cargo'].includes(activeView)) switchView('overview');
+}
+
+$('#proUnlockBtn').addEventListener('click', ()=>{
+  const code = $('#proCodeInput').value.trim();
+  if(!code) return;
+  $('#proUnlockBtn').disabled = true;
+  $('#proMsg').textContent = 'Đang kiểm tra…'; $('#proMsg').className = 'pro-msg';
+  google.script.run
+    .withSuccessHandler(function(check){
+      if(!check || !check.valid){
+        $('#proUnlockBtn').disabled = false;
+        $('#proMsg').textContent = 'Mã không đúng.'; $('#proMsg').className = 'pro-msg err';
+        return;
+      }
+      $('#proMsg').textContent = 'Đang tải dữ liệu Pro…';
+      google.script.run
+        .withSuccessHandler(function(result){
+          $('#proUnlockBtn').disabled = false;
+          TIER = 'pro'; PRO_NAME = check.name || null;
+          RAW = normalize(result.rows);
+          COST_ROWS = normalizeCost(result.costRows || []);
+          COST_CATEGORIES = Array.from(new Set(COST_ROWS.flatMap(r=>Object.keys(r.categories)))).sort();
+          FUEL_PRICE_LOOKUP = buildFuelPriceLookup(result.fuelPrices || []);
+          ROUTE_KM = result.routeKm || {};
+          CARGO_ROWS = normalizeCargo(result.cargoRows || []);
+          updateTierUI();
+          $('#proMsg').textContent = 'Đã mở khoá Pro ✓'; $('#proMsg').className = 'pro-msg ok';
+          initSeatMapOptions();
+          renderAll();
+        })
+        .withFailureHandler(function(err){
+          $('#proUnlockBtn').disabled = false;
+          $('#proMsg').textContent = 'Lỗi: ' + (err && err.message ? err.message : err); $('#proMsg').className = 'pro-msg err';
+        })
+        .getDashboardData('pro');
+    })
+    .withFailureHandler(function(err){
+      $('#proUnlockBtn').disabled = false;
+      $('#proMsg').textContent = 'Lỗi: ' + (err && err.message ? err.message : err); $('#proMsg').className = 'pro-msg err';
+    })
+    .verifyProCode(code);
+});
+
+$('#proLogoutBtn').addEventListener('click', ()=>{
+  if(!confirm('Thoát bản Pro và quay về bản Lite?')) return;
+  google.script.run
+    .withSuccessHandler(function(result){
+      TIER = 'lite'; PRO_NAME = null; COST_ROWS = []; CARGO_ROWS = []; COST_CATEGORIES = []; FUEL_PRICE_LOOKUP = null; ROUTE_KM = {};
+      RAW = normalize(result.rows || []);
+      updateTierUI();
+      renderAll();
+    })
+    .withFailureHandler(function(err){ alert('Lỗi: ' + (err && err.message ? err.message : err)); })
+    .getDashboardData('lite');
+});
+
+// ---------- Sidebar navigation (tab switching, không cuộn) ----------
+let activeView = 'overview';
+const VIEW_META = {
+  overview:{ title:'Tổng quan', desc:'Bức tranh toàn cảnh công ty trong kỳ đang lọc' },
+  fleet:{ title:'Đội xe', desc:'Hiệu suất, chi phí, lợi nhuận từng xe — bấm 1 dòng để xem chi tiết' },
+  seatmap:{ title:'Sơ đồ giường', desc:'Tái hiện từng chỗ theo Cấu hình xe — chọn Tuyến → Ngày đi → Biển số' },
+  fuel:{ title:'Định mức tiêu hao nhiên liệu', desc:'Toàn bộ lịch sử, so với trung bình đội xe' },
+  people:{ title:'Con người', desc:'Ai đang đóng góp doanh thu nhiều nhất' },
+  channels:{ title:'Kênh bán hàng', desc:'Doanh thu đến từ đâu' },
+  cargo:{ title:'Ký gửi hàng hoá', desc:'Sổ ghi chép ký gửi hàng hoá theo xe' }
+};
+function switchView(id){
+  if(!tierIsPro() && ['seatmap','fuel','cargo'].includes(id)) return;
+  activeView = id;
+  $$('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  $$('.view-panel').forEach(v=>v.classList.toggle('active', v.id==='view-'+id));
+  $('#viewTitle').textContent = VIEW_META[id].title;
+  $('#viewDesc').textContent = VIEW_META[id].desc;
+}
+$$('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.classList.contains('pro-locked')){
+      alert('Mục này chỉ dành cho bản Pro — mở khoá Pro ở cuối sidebar nhé.');
+      return;
+    }
+    switchView(btn.dataset.view);
+  });
+});
+
+// ---------- Init & filters ----------
+function initApp(){
+  $('#app').classList.add('ready');
+  $('#loadNewBtn').style.display='inline-flex';
+
+  const routes = Array.from(new Set(RAW.map(r=>r.tuyen))).sort();
+  $('#routeFilter').innerHTML = '<option value="__all">Tất cả tuyến</option>' + routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+  $('#routeFilter').addEventListener('change', ()=>{ currentRoute = $('#routeFilter').value; renderAll(); });
+
+  $$('.chip[data-period]').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      $$('.chip[data-period]').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      currentPeriod = chip.dataset.period;
+      $('#customDates').style.display = currentPeriod==='custom' ? 'flex' : 'none';
+      if(currentPeriod!=='custom') renderAll();
+    });
+  });
+  $('#dateFrom').addEventListener('change', ()=>{ customFrom = toDateOnly(new Date($('#dateFrom').value)); renderAll(); });
+  $('#dateTo').addEventListener('change', ()=>{ customTo = toDateOnly(new Date($('#dateTo').value)); renderAll(); });
+
+  const dates = RAW.map(r=>r.ngayDi.getTime());
+  const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
+  $('#dateFrom').value = minD.toISOString().slice(0,10);
+  $('#dateTo').value = maxD.toISOString().slice(0,10);
+  customFrom = minD; customTo = maxD;
+
+  initSeatMapOptions();
+  renderAll();
+}
+
+function renderAll(){
+  const {from, to} = computeRange(currentPeriod);
+  const routeMatch = (t)=> currentRoute==='__all' || t===currentRoute;
+  const filtered = RAW.filter(r=>inRange(r.ngayDi, from, to) && routeMatch(r.tuyen));
+  lastFiltered = filtered;
+
+  renderOverview(filtered, from, to);
+  renderFleet(filtered, from, to);
+  renderPeople(filtered);
+  renderChannels(filtered);
+  if(tierIsPro()){
+    renderFuel();
+    renderCargoView(from, to);
+  }
+}
+
+// ================= TỔNG QUAN =================
+function renderOverview(filtered, from, to){
+  const paid = filtered.filter(r=>r.trangThai==='Đã thanh toán');
+  const pending = filtered.filter(r=>r.trangThai==='Đặt chỗ');
+  const cancelled = filtered.filter(r=>r.trangThai==='Hủy');
+  const sold = filtered.filter(r=>r.trangThai!=='Hủy');
+  const paidRevenue = paid.reduce((s,r)=>s+r.thanhTien,0);
+  const pendingRevenue = pending.reduce((s,r)=>s+r.thanhTien,0);
+
+  let kpiHtml = `
+    <div class="kpi-card"><div class="kpi-label">Tổng vé bán</div><div class="kpi-value mono">${fmtInt(sold.length)}</div><div class="kpi-sub">${from&&to?from.toLocaleDateString('vi-VN')+' → '+to.toLocaleDateString('vi-VN'):'toàn bộ dữ liệu'}</div></div>
+    <div class="kpi-card c-teal"><div class="kpi-label">Doanh thu thực thu</div><div class="kpi-value mono">${fmtVNDShort(paidRevenue)}</div><div class="kpi-sub">${fmtVND(paidRevenue)} đ</div></div>`;
+
+  if(tierIsPro()){
+    const costView = costsForView(from, to, currentRoute);
+    const costs = costView.rows;
+    const cargos = cargoInRange(from,to);
+    const totalCost = costs.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+    const totalCargo = cargos.reduce((s,r)=>s+r.amount,0);
+    const totalRevenue = paidRevenue + pendingRevenue + totalCargo;
+    const profit = totalRevenue - totalCost;
+    const cancelRate = filtered.length ? cancelled.length/filtered.length : 0;
+    kpiHtml += `
+      <div class="kpi-card c-blue"><div class="kpi-label">Chi phí vận hành</div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ${costView.isFiltered && costView.unTaggedCount ? ' · ⚠ '+costView.unTaggedCount+' dòng chưa gán Tuyến' : ''}</div></div>
+      <div class="kpi-card ${profit<0?'c-danger':'c-teal'}"><div class="kpi-label">Lợi nhuận ròng</div><div class="kpi-value mono ${profit<0?'danger':''}">${fmtVNDShort(profit)}</div><div class="kpi-sub">Gồm ${fmtVNDShort(pendingRevenue)} đặt chỗ + ${fmtVNDShort(totalCargo)} ký gửi</div></div>
+      <div class="kpi-card ${cancelRate>0.4?'c-danger':''}"><div class="kpi-label">Tỷ lệ huỷ vé</div><div class="kpi-value mono ${cancelRate>0.4?'danger':''}">${fmtPct(cancelRate)}</div><div class="kpi-sub">${fmtInt(cancelled.length)} / ${fmtInt(filtered.length)} vé</div></div>`;
+  }
+  $('#ovKpis').innerHTML = kpiHtml;
+  $('#ovKpis').style.gridTemplateColumns = tierIsPro() ? 'repeat(5,1fr)' : 'repeat(2,1fr)';
+
+  // Trend chart
+  const revByDay = new Map(), costByDay = new Map();
+  filtered.filter(r=>r.trangThai!=='Hủy').forEach(r=>{ const k=r.ngayDi.toISOString().slice(0,10); revByDay.set(k,(revByDay.get(k)||0)+r.thanhTien); });
+  if(tierIsPro()){
+    costsForView(from, to, currentRoute).rows.forEach(r=>{ const k=r.ngay.toISOString().slice(0,10); const t=Object.values(r.categories).reduce((a,b)=>a+b,0); costByDay.set(k,(costByDay.get(k)||0)+t); });
+  }
+  const days = Array.from(new Set([...revByDay.keys(), ...costByDay.keys()])).sort();
+  const labels = days.map(d=>new Date(d).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+  const datasets = [{label:'Doanh thu', data:days.map(d=>revByDay.get(d)||0), borderColor:COLORS.amber, backgroundColor:'rgba(242,183,5,0.12)', fill:true, tension:0.3, pointRadius:2, borderWidth:2}];
+  if(tierIsPro()) datasets.push({label:'Chi phí', data:days.map(d=>costByDay.get(d)||0), borderColor:COLORS.danger, backgroundColor:'transparent', borderDash:[5,4], tension:0.3, pointRadius:2, borderWidth:2});
+  destroy('ovTrend');
+  charts.ovTrend = new Chart($('#ovTrendChart'), { type:'line', data:{labels, datasets}, options:{
+    plugins:{legend:{labels:{color:COLORS.textlo}}, tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmtVND(c.parsed.y)+' đ'}}},
+    scales:{ x:{ticks:{color:COLORS.textlo, maxTicksLimit:12}, grid:{display:false}}, y:{ticks:{color:COLORS.textlo, callback:v=>(v/1e6).toFixed(0)+'tr'}, grid:{color:gridColor()}} }
+  }});
+
+  // Alerts
+  renderOverviewAlerts(filtered, from, to);
+
+  // Route split
+  const g = groupBy(filtered, r=>r.tuyen);
+  const rlabels = Array.from(g.keys());
+  destroy('ovRoute');
+  charts.ovRoute = new Chart($('#ovRouteChart'), { type:'bar', data:{labels:rlabels, datasets:[{label:'Doanh thu', data: rlabels.map(l=>g.get(l).revenue), backgroundColor: rlabels.map(l=>routeTag(l)==='qn'?COLORS.amber:routeTag(l)==='dl'?COLORS.teal:'#7C9EF2'), borderRadius:6}]},
+    options:{ plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtVND(c.parsed.y)+' đ'}}}, scales:{ x:{ticks:{color:COLORS.textlo}, grid:{display:false}}, y:{ticks:{color:COLORS.textlo, callback:v=>(v/1e6).toFixed(0)+'tr'}, grid:{color:gridColor()}} } } });
+
+  // Mix
+  destroy('ovMix');
+  if(tierIsPro()){
+    $('#ovMixHint').textContent = 'Theo trạng thái vé (kỳ đang lọc)';
+    charts.ovMix = new Chart($('#ovMixChart'), { type:'doughnut', data:{ labels:['Đã thanh toán','Đặt chỗ','Huỷ'], datasets:[{data:[paidRevenue, pendingRevenue, cancelled.reduce((s,r)=>s+r.thanhTien,0)], backgroundColor:[COLORS.amber, COLORS.pink, 'rgba(255,255,255,0.2)'], borderColor:'#121A2B', borderWidth:3}] },
+      options:{ plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:12}}, tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} } });
+  } else {
+    $('#ovMixHint').textContent = 'Theo tuyến (bản Lite chỉ thấy vé đã thanh toán)';
+    charts.ovMix = new Chart($('#ovMixChart'), { type:'doughnut', data:{ labels: rlabels, datasets:[{data: rlabels.map(l=>g.get(l).revenue), backgroundColor:COLORS.palette, borderColor:'#121A2B', borderWidth:3}] },
+      options:{ plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:12}}, tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} } });
+  }
+}
+
+function renderOverviewAlerts(filtered, from, to){
+  const box = $('#ovAlerts');
+  const alerts = [];
+
+  const g = groupBy(filtered, r=>r.tuyen);
+  g.forEach((v,k)=>{ const rate = v.total? v.cancelled/v.total : 0; if(tierIsPro() && rate>0.4) alerts.push({level:'danger', text:`Tuyến ${k} đang huỷ ${fmtPct(rate)} — cao bất thường.`}); });
+
+  if(tierIsPro()){
+    const costs = costsForView(from, to, currentRoute).rows, cargos = cargoInRange(from,to);
+    const revByXe = new Map(), costByXe = new Map();
+    filtered.filter(r=>r.trangThai!=='Hủy').forEach(r=>revByXe.set(r.xe,(revByXe.get(r.xe)||0)+r.thanhTien));
+    cargos.forEach(r=>revByXe.set(r.xe,(revByXe.get(r.xe)||0)+r.amount));
+    costs.forEach(r=>{ const t=Object.values(r.categories).reduce((a,b)=>a+b,0); costByXe.set(r.xe,(costByXe.get(r.xe)||0)+t); });
+    const allXe = new Set([...revByXe.keys(), ...costByXe.keys()]);
+    let lossCount = 0;
+    allXe.forEach(xe=>{ if((costByXe.get(xe)||0) > (revByXe.get(xe)||0)) lossCount++; });
+    if(lossCount) alerts.push({level:'danger', text:`${lossCount} xe đang lỗ trong kỳ đang lọc — xem mục Đội xe để xử lý.`});
+
+    if(cargos.length){
+      const fuelCost = costs.reduce((s,r)=>s+(r.categories['Nhiên liệu']||0),0);
+      const totalCargo = cargos.reduce((s,r)=>s+r.amount,0);
+      if(fuelCost>0){
+        const pct = totalCargo/fuelCost;
+        alerts.push({level: pct>=1?'ok':'warn', text:`Ký gửi hàng hoá (${fmtVNDShort(totalCargo)}) bù được ${fmtPct(pct)} chi phí nhiên liệu (${fmtVNDShort(fuelCost)}) trong kỳ.`});
+      }
+    }
+  } else {
+    alerts.push({level:'warn', text:'Bản Lite chỉ hiện vé đã thanh toán — mở khoá Pro để xem cảnh báo chi phí, lợi nhuận, tỷ lệ huỷ.'});
+  }
+
+  if(!alerts.length) alerts.push({level:'ok', text:'Không phát hiện bất thường trong kỳ đang lọc.'});
+  box.innerHTML = alerts.map(a=>`<div class="alert-row ${a.level}"><span class="dot"></span><span>${a.text}</span></div>`).join('');
+}
+
+// ================= ĐỘI XE =================
+let FLEET_ROWS = [];
+let fleetSort = {key:'revenue', dir:-1};
+function renderFleet(filtered, from, to){
+  const scoped = filtered;
+  if(!tierIsPro()){
+    $('#fleetHint').textContent = 'Bản Lite: chỉ thấy doanh thu đã thanh toán. Bấm 1 dòng để xem chi tiết.';
+    const g = groupBy(scoped, r=>r.xe);
+    FLEET_ROWS = Array.from(g.entries()).map(([xe,v])=>({xe, count:v.count, revenue:v.revenue, cost:0, cargo:0, profit:v.revenue, margin: v.revenue?1:0, pending:0, cancelRate:0}));
+    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['count','Số vé'],['revenue','Doanh thu']]);
+  } else {
+    const costView = costsForView(from, to, currentRoute);
+    const costs = costView.rows, cargos = cargoInRange(from,to);
+    $('#fleetHint').textContent = 'Bấm tiêu đề cột để sắp xếp · bấm 1 dòng để xem chi tiết + chi phí + ký gửi'
+      + (costView.isFiltered && costView.unTaggedCount ? ` · ⚠ ${costView.unTaggedCount} dòng chi phí chưa gán Tuyến (đang tính chung cho mọi tuyến)` : '');
+    const costByXe = new Map(); costs.forEach(r=>costByXe.set(r.xe,(costByXe.get(r.xe)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)));
+    const cargoByXe = new Map(); cargos.forEach(r=>cargoByXe.set(r.xe,(cargoByXe.get(r.xe)||0)+r.amount));
+    const statByXe = new Map();
+    scoped.forEach(r=>{
+      if(!statByXe.has(r.xe)) statByXe.set(r.xe, {count:0,total:0,cancelled:0,paid:0,pending:0});
+      const s = statByXe.get(r.xe); s.total++;
+      if(r.trangThai==='Hủy') s.cancelled++; else s.count++;
+      if(r.trangThai==='Đã thanh toán') s.paid += r.thanhTien;
+      if(r.trangThai==='Đặt chỗ') s.pending += r.thanhTien;
+    });
+    const allXe = new Set([...statByXe.keys(), ...costByXe.keys(), ...cargoByXe.keys()]);
+    FLEET_ROWS = Array.from(allXe).map(xe=>{
+      const s = statByXe.get(xe) || {count:0,total:0,cancelled:0,paid:0,pending:0};
+      const cost = costByXe.get(xe)||0, cargo = cargoByXe.get(xe)||0;
+      const ticketRevenue = s.paid + s.pending;
+      const revenue = ticketRevenue + cargo;
+      const profit = revenue - cost;
+      const isTruck = s.total===0 && cargo>0; // biển số không hề bán vé, chỉ chở ký gửi
+      const ticketProfit = ticketRevenue - cost;
+      const ticketMargin = ticketRevenue ? ticketProfit/ticketRevenue : 0;
+      return { xe, isTruck, count:s.count, revenue:s.paid, pending:s.pending, cargo, cost,
+        ticketProfit, ticketMargin, profit, margin: revenue?profit/revenue:0, cancelRate: s.total? s.cancelled/s.total:0 };
+    });
+    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['count','Số vé'],['revenue','Doanh thu TT'],['pending','Đặt chỗ'],['cargo','Ký gửi'],['cost','Chi phí'],['profit','Lợi nhuận'],['margin','Biên LN'],['cancelRate','Tỷ lệ huỷ']]);
+  }
+  bindFleetSort();
+  applyFleetSortAndRender();
+}
+function headerCells(cols){ return cols.map(([key,label])=>`<th class="${key==='xe'?'':'num'}" data-sort="${key}">${label}</th>`).join('') + '<th></th>'; }
+function bindFleetSort(){
+  $$('#fleetTableHead th[data-sort]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.sort;
+      fleetSort.dir = (fleetSort.key===key) ? -fleetSort.dir : -1;
+      fleetSort.key = key;
+      applyFleetSortAndRender();
+    });
+  });
+}
+function applyFleetSortAndRender(){
+  const q = ($('#fleetSearch').value||'').trim().toLowerCase();
+  let rows = q ? FLEET_ROWS.filter(r=>r.xe.toLowerCase().includes(q)) : FLEET_ROWS.slice();
+  const k = fleetSort.key;
+  rows.sort((a,b)=>{
+    if(typeof a[k]==='string') return fleetSort.dir * -1 * a[k].localeCompare(b[k]);
+    return fleetSort.dir * ((a[k]||0)-(b[k]||0));
+  });
+  const maxRev = Math.max(1, ...rows.map(r=>r.revenue));
+  const tbody = $('#fleetTable tbody');
+  if(!tierIsPro()){
+    tbody.innerHTML = rows.map(r=>`<tr data-xe="${r.xe}" style="cursor:pointer;">
+      <td class="mono">${r.xe}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtVND(r.revenue)}</td>
+      <td><button class="row-detail-btn" data-xe="${r.xe}">Chi tiết</button></td>
+    </tr>`).join('') || emptyRow(4);
+  } else {
+    tbody.innerHTML = rows.map(r=>`<tr data-xe="${r.xe}" style="cursor:pointer;">
+      <td class="mono">${r.isTruck ? '🚛 ' : ''}${r.xe}</td>
+      <td class="num mono">${fmtInt(r.count)}</td>
+      <td class="num mono">${fmtVND(r.revenue)}</td>
+      <td class="num mono" style="color:${r.pending?'var(--pink)':'var(--text-lo)'}">${fmtVND(r.pending)}</td>
+      <td class="num mono" style="color:${r.cargo?'var(--blue)':'var(--text-lo)'}">${fmtVND(r.cargo)}</td>
+      <td class="num mono">${fmtVND(r.cost)}</td>
+      <td class="num mono" style="color:${r.profit<0?'var(--danger)':'var(--teal)'}">${fmtVND(r.profit)}${(!r.isTruck && r.cargo) ? `<div style="font-size:9.5px; font-weight:400; color:var(--text-lo);">LN vé riêng: ${fmtVND(r.ticketProfit)}</div>` : ''}</td>
+      <td class="num mono" style="color:${r.margin<0?'var(--danger)':'var(--text-lo)'}">${fmtPct(r.margin)}${(!r.isTruck && r.cargo) ? `<div style="font-size:9.5px; font-weight:400;">vé: ${fmtPct(r.ticketMargin)}</div>` : ''}</td>
+      <td class="num mono" style="color:${r.cancelRate>0.4?'var(--danger)':'var(--text-lo)'}">${r.isTruck ? '—' : fmtPct(r.cancelRate)}</td>
+      <td><button class="row-detail-btn" data-xe="${r.xe}">Chi tiết</button></td>
+    </tr>`).join('') || emptyRow(10);
+  }
+  $$('#fleetTable .row-detail-btn').forEach(btn=>btn.addEventListener('click', (e)=>{ e.stopPropagation(); openVehicleDrawer(btn.dataset.xe); }));
+  $$('#fleetTable tbody tr').forEach(tr=>tr.addEventListener('click', ()=>openVehicleDrawer(tr.dataset.xe)));
+}
+function emptyRow(n){ return `<tr><td colspan="${n}" style="color:var(--text-lo)">Không có xe nào khớp bộ lọc</td></tr>`; }
+$('#fleetSearch').addEventListener('input', applyFleetSortAndRender);
+
+function destroy(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+// ================= DRAWER: CHI TIẾT 1 XE =================
+const TIER_ORDER = ['Đã thanh toán', 'Đặt chỗ', 'Hủy'];
+function tierClass(status){ if(status==='Đã thanh toán') return 'paid'; if(status==='Đặt chỗ') return 'pending'; return 'cancelled'; }
+let drawerXe = null;
+function openVehicleDrawer(xe){
+  drawerXe = xe;
+  const {from,to} = computeRange(currentPeriod);
+  const rows = lastFiltered.filter(r=>r.xe===xe);
+  const total = rows.length;
+
+  $('#drawerPlate').textContent = xe;
+  $('#drawerRange').textContent = (from&&to? `${from.toLocaleDateString('vi-VN')} → ${to.toLocaleDateString('vi-VN')}`:'toàn bộ dữ liệu') + ` · ${fmtInt(total)} vé`;
+
+  const statMap = new Map(); TIER_ORDER.forEach(t=>statMap.set(t,{count:0,revenue:0}));
+  rows.forEach(r=>{ const key=r.trangThai||'(không rõ)'; if(!statMap.has(key)) statMap.set(key,{count:0,revenue:0}); const s=statMap.get(key); s.count++; s.revenue+=r.thanhTien; });
+
+  const visibleTiers = tierIsPro() ? TIER_ORDER : ['Đã thanh toán'];
+  $('#drawerTierGrid').innerHTML = visibleTiers.map(t=>{ const s=statMap.get(t); return `<div class="tier-card"><div class="tier-label">${t}</div><div class="tier-count">${fmtInt(s.count)} vé — ${fmtVND(s.revenue)}đ</div></div>`; }).join('');
+  $('#drawerTierGrid').style.gridTemplateColumns = tierIsPro() ? 'repeat(2,1fr)' : '1fr';
+
+  if(tierIsPro()){
+    const drawerCostView0 = costsForView(from, to, currentRoute);
+    const costRowsAll0 = drawerCostView0.rows.filter(r=>r.xe===xe);
+    const grandCost0 = costRowsAll0.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+    const cargoRows0 = cargoInRange(from,to).filter(r=>r.xe===xe);
+    const cargoTotal0 = cargoRows0.reduce((s,r)=>s+r.amount,0);
+    const ticketRevenue0 = (statMap.get('Đã thanh toán')?.revenue||0) + (statMap.get('Đặt chỗ')?.revenue||0);
+    const ticketProfit0 = ticketRevenue0 - grandCost0;
+    const totalProfit0 = (ticketRevenue0 + cargoTotal0) - grandCost0;
+    const isTruckXe0 = total===0 && cargoTotal0>0;
+    let profitHtml = `<div class="tier-card"><div class="tier-label">${isTruckXe0?'Lợi nhuận (chỉ ký gửi)':'Lợi nhuận vé riêng'}</div><div class="tier-count" style="color:${(isTruckXe0?totalProfit0:ticketProfit0)<0?'var(--danger)':'var(--teal)'}">${fmtVND(isTruckXe0?totalProfit0:ticketProfit0)} đ</div></div>`;
+    if(!isTruckXe0 && cargoTotal0>0){
+      profitHtml += `<div class="tier-card"><div class="tier-label">Lợi nhuận tổng (gồm ký gửi)</div><div class="tier-count" style="color:${totalProfit0<0?'var(--danger)':'var(--teal)'}">${fmtVND(totalProfit0)} đ</div></div>`;
+    }
+    $('#drawerProfitGrid').innerHTML = profitHtml;
+    $('#drawerProfitGrid').style.display = 'grid';
+  } else {
+    $('#drawerProfitGrid').style.display = 'none';
+  }
+
+  let keys = Array.from(statMap.keys());
+  if(!tierIsPro()) keys = keys.filter(k=>k==='Đã thanh toán');
+  $('#drawerTicketTable tbody').innerHTML = keys.map(k=>{ const s=statMap.get(k); return `<tr><td><span class="tag ${tierClass(k)==='paid'?'dl':'qn'}">${k}</span></td><td class="num mono">${fmtInt(s.count)}</td><td class="num mono">${fmtVND(s.revenue)}</td></tr>`; }).join('') || '<tr><td colspan="3" style="color:var(--text-lo)">Không có dữ liệu</td></tr>';
+
+  if(tierIsPro()){
+    const drawerCostView = costsForView(from, to, currentRoute);
+    const costRows = drawerCostView.rows.filter(r=>r.xe===xe);
+    const byTuyenCat = new Map(); // tuyen -> Map(category -> amount)
+    let grand=0;
+    costRows.forEach(r=>{
+      const tKey = r.tuyen || '(chưa gán tuyến)';
+      if(!byTuyenCat.has(tKey)) byTuyenCat.set(tKey, new Map());
+      const catMap = byTuyenCat.get(tKey);
+      Object.entries(r.categories).forEach(([c,v])=>{ if(!v) return; catMap.set(c,(catMap.get(c)||0)+v); grand+=v; });
+    });
+    if(grand){
+      $('#drawerCostBlock').style.display='block';
+      const multiRoute = byTuyenCat.size > 1;
+      $('#drawerCostTable thead').innerHTML = multiRoute
+        ? '<tr><th>Tuyến</th><th>Khoản mục</th><th class="num">Số tiền</th></tr>'
+        : '<tr><th>Khoản mục</th><th class="num">Số tiền</th></tr>';
+      let bodyHtml = '';
+      Array.from(byTuyenCat.entries()).forEach(([tuyenKey, catMap])=>{
+        const catRows = Array.from(catMap.entries()).sort((a,b)=>b[1]-a[1]);
+        catRows.forEach(([c,v], idx)=>{
+          if(multiRoute){
+            bodyHtml += `<tr><td class="mono" style="color:${tuyenKey==='(chưa gán tuyến)'?'var(--text-lo)':'var(--text-hi)'}">${idx===0?tuyenKey:''}</td><td>${c}</td><td class="num mono">${fmtVND(v)}</td></tr>`;
+          } else {
+            bodyHtml += `<tr><td>${c}</td><td class="num mono">${fmtVND(v)}</td></tr>`;
+          }
+        });
+      });
+      $('#drawerCostTable tbody').innerHTML = bodyHtml;
+    } else { $('#drawerCostBlock').style.display='none'; }
+
+    const cargoRows = cargoInRange(from,to).filter(r=>r.xe===xe).sort((a,b)=>b.ngay-a.ngay);
+    if(cargoRows.length){
+      $('#drawerCargoBlock').style.display='block';
+      $('#drawerCargoTable tbody').innerHTML = cargoRows.map(r=>`<tr><td class="mono">${r.ngay.toLocaleDateString('vi-VN')}</td><td>${r.item||'(chưa ghi)'}</td><td class="num mono" style="color:var(--blue)">${fmtVND(r.amount)}</td></tr>`).join('');
+    } else { $('#drawerCargoBlock').style.display='none'; }
+  } else {
+    $('#drawerCostBlock').style.display='none';
+    $('#drawerCargoBlock').style.display='none';
+  }
+
+  $('#vehicleDrawerOverlay').classList.add('open');
+}
+$('#drawerClose').addEventListener('click', ()=>$('#vehicleDrawerOverlay').classList.remove('open'));
+$('#vehicleDrawerOverlay').addEventListener('click', (e)=>{ if(e.target.id==='vehicleDrawerOverlay') $('#vehicleDrawerOverlay').classList.remove('open'); });
+$('#drawerSeatmapBtn').addEventListener('click', ()=>{
+  if(!tierIsPro()){ alert('Sơ đồ giường chỉ có ở bản Pro.'); return; }
+  $('#vehicleDrawerOverlay').classList.remove('open');
+  switchView('seatmap');
+  const xeRows = RAW.filter(r=>r.xe===drawerXe);
+  if(xeRows.length){
+    const tuyen = xeRows[0].tuyen;
+    const latestDate = xeRows.map(r=>r.ngayDi).sort((a,b)=>b-a)[0];
+    $('#seatmapRoute').value = tuyen;
+    onSeatmapFilterChange();
+    $('#seatmapDate').value = latestDate.toISOString().slice(0,10);
+    onSeatmapFilterChange();
+    $('#seatmapVehicle').value = drawerXe;
+    renderSeatMap();
+  }
+});
+
+// ================= CON NGƯỜI =================
+function renderTopTable(filtered, keyFn, tbodySel, limit=15){
+  const g = groupBy(filtered, keyFn);
+  const rows = Array.from(g.entries()).map(([k,v])=>({name:k,...v})).sort((a,b)=>b.revenue-a.revenue).slice(0,limit);
+  $(tbodySel).innerHTML = rows.map(r=>`<tr><td>${r.name}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtVND(r.revenue)}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--text-lo)">Không có dữ liệu</td></tr>';
+}
+function renderPeople(filtered){
+  renderTopTable(filtered, r=>r.taiXe, '#driverTable tbody');
+  renderTopTable(filtered, r=>r.nhanVien, '#staffTable tbody');
+}
+
+// ================= KÊNH BÁN HÀNG =================
+function renderChannels(filtered){
+  const gA = groupBy(filtered, r=>r.cnDaiLy);
+  const rowsA = Array.from(gA.entries()).map(([k,v])=>({name:k,...v})).sort((a,b)=>b.revenue-a.revenue).slice(0,15);
+  destroy('agency');
+  charts.agency = new Chart($('#agencyChart'), { type:'bar', data:{labels:rowsA.map(r=>r.name), datasets:[{label:'Doanh thu', data:rowsA.map(r=>r.revenue), backgroundColor:COLORS.palette, borderRadius:6}]},
+    options:{ indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtVND(c.parsed.x)+' đ'}}}, scales:{ x:{ticks:{color:COLORS.textlo, callback:v=>(v/1e6).toFixed(0)+'tr'}, grid:{color:gridColor()}}, y:{ticks:{color:COLORS.textlo}, grid:{display:false}} } } });
+
+  const gC = groupBy(filtered, r=>r.nguon);
+  const labelsC = Array.from(gC.keys());
+  destroy('channel');
+  charts.channel = new Chart($('#channelChart'), { type:'doughnut', data:{labels:labelsC, datasets:[{data:labelsC.map(l=>gC.get(l).revenue), backgroundColor:COLORS.palette, borderColor:'#121A2B', borderWidth:3}]},
+    options:{ plugins:{legend:{position:'bottom', labels:{color:COLORS.textlo, boxWidth:12}}, tooltip:{callbacks:{label:c=>' '+c.label+': '+fmtVND(c.parsed)+' đ'}}} } });
+}
+
+// ================= KÝ GỬI HÀNG HOÁ =================
+let CARGO_VIEW_ROWS = [];
+function renderCargoView(from, to){
+  const rows = cargoInRange(from, to).sort((a,b)=>b.ngay-a.ngay);
+  CARGO_VIEW_ROWS = rows;
+  const total = rows.reduce((s,r)=>s+r.amount,0);
+  const costs = costsForView(from, to, currentRoute).rows;
+  const fuelCost = costs.reduce((s,r)=>s+(r.categories['Nhiên liệu']||0),0);
+  const pct = fuelCost ? total/fuelCost : null;
+  $('#cargoKpis').innerHTML = `
+    <div class="kpi-card c-blue"><div class="kpi-label">Tổng doanh thu ký gửi</div><div class="kpi-value mono">${fmtVNDShort(total)}</div><div class="kpi-sub">${fmtInt(rows.length)} đơn</div></div>
+    <div class="kpi-card"><div class="kpi-label">Chi phí nhiên liệu cùng kỳ</div><div class="kpi-value mono">${fmtVNDShort(fuelCost)}</div><div class="kpi-sub">Để đối chiếu</div></div>
+    <div class="kpi-card ${pct!=null && pct>=1 ? 'c-teal':''}"><div class="kpi-label">Mức bù đắp nhiên liệu</div><div class="kpi-value mono">${pct!=null?fmtPct(pct):'—'}</div><div class="kpi-sub">Ký gửi / Nhiên liệu</div></div>
+  `;
+  renderCargoTableFiltered();
+}
+function renderCargoTableFiltered(){
+  const q = ($('#cargoSearch').value||'').trim().toLowerCase();
+  const rows = q ? CARGO_VIEW_ROWS.filter(r=>r.xe.toLowerCase().includes(q) || (r.item||'').toLowerCase().includes(q)) : CARGO_VIEW_ROWS;
+  $('#cargoTable tbody').innerHTML = rows.map(r=>`<tr>
+    <td class="mono">${r.ngay.toLocaleDateString('vi-VN')}</td>
+    <td class="mono">${r.xe}</td>
+    <td>${r.item || '<span style="color:var(--text-lo)">(chưa ghi nội dung)</span>'}</td>
+    <td class="num mono" style="color:var(--blue)">${fmtVND(r.amount)}</td>
+    <td style="color:var(--text-lo)">${r.note||''}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-lo)">Không có dữ liệu ký gửi trong kỳ đang lọc</td></tr>';
+}
+$('#cargoSearch').addEventListener('input', renderCargoTableFiltered);
+
+// ================= ĐỊNH MỨC NHIÊN LIỆU (giữ nguyên logic) =================
+function renderFuel(){
+  const fuelCatName = COST_CATEGORIES.find(c=>c==='Nhiên liệu');
+  if(!fuelCatName || !FUEL_PRICE_LOOKUP){
+    $('#fuelTable tbody').innerHTML = '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có cột "Nhiên liệu" trong ChiPhi hoặc chưa có dữ liệu GiaNhienLieu</td></tr>';
+    $('#fuelNote').textContent = ''; return;
+  }
+  const MIN_TRIPS = 5;
+  const tripSeen = new Set(); const tripKmByXe = new Map(); const tripCountByXe = new Map();
+  RAW.forEach(r=>{
+    if(r.trangThai==='Hủy') return;
+    const key = r.xe+'|'+r.ngayDi.getTime()+'|'+r.chuyen;
+    if(tripSeen.has(key)) return; tripSeen.add(key);
+    const km = ROUTE_KM[r.tuyen] || 0;
+    tripKmByXe.set(r.xe, (tripKmByXe.get(r.xe)||0)+km);
+    tripCountByXe.set(r.xe, (tripCountByXe.get(r.xe)||0)+1);
+  });
+  const litByXe = new Map();
+  COST_ROWS.forEach(r=>{
+    const vnd = r.categories[fuelCatName]||0; if(!vnd) return;
+    const price = FUEL_PRICE_LOOKUP(r.ngay); if(!price) return;
+    litByXe.set(r.xe, (litByXe.get(r.xe)||0) + vnd/price);
+  });
+  const allXe = Array.from(new Set([...tripKmByXe.keys(), ...litByXe.keys()])).sort();
+  let rows = allXe.map(xe=>{
+    const km = tripKmByXe.get(xe)||0, lit = litByXe.get(xe)||0, trips = tripCountByXe.get(xe)||0;
+    const per100 = km ? lit/(km/100) : null;
+    return { xe, trips, km, lit, per100, reliable: trips>=MIN_TRIPS && km>0 };
+  });
+  const reliableRows = rows.filter(r=>r.reliable);
+  const totalKm = reliableRows.reduce((s,r)=>s+r.km,0), totalLit = reliableRows.reduce((s,r)=>s+r.lit,0);
+  const fleetAvg = totalKm ? totalLit/(totalKm/100) : null;
+  rows = rows.sort((a,b)=>(b.per100||0)-(a.per100||0));
+  $('#fuelTable tbody').innerHTML = rows.map(r=>{
+    let assessment = `<span style="color:var(--text-lo)">Chỉ ${r.trips} chuyến — chưa đủ dữ liệu</span>`;
+    if(r.reliable && r.per100!=null && fleetAvg){
+      const diff = (r.per100-fleetAvg)/fleetAvg;
+      if(diff>0.15) assessment = '<span class="tag" style="background:rgba(251,113,133,0.14); color:var(--danger);">Cao bất thường</span>';
+      else if(diff<-0.15) assessment = '<span class="tag" style="background:rgba(94,234,212,0.14); color:var(--teal);">Thấp bất thường</span>';
+      else assessment = '<span class="tag" style="background:rgba(140,150,175,0.14); color:var(--text-lo);">Bình thường</span>';
+    }
+    return `<tr><td class="mono">${r.xe}</td><td class="num mono">${fmtInt(r.trips)}</td><td class="num mono">${fmtInt(r.km)}</td><td class="num mono">${r.lit.toFixed(1)}</td><td class="num mono">${r.per100!=null?r.per100.toFixed(2):'—'}</td><td>${assessment}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu</td></tr>';
+  $('#fuelNote').textContent = fleetAvg ? `Tính trên TOÀN BỘ dữ liệu (không đổi theo bộ lọc ngày/tuyến) · TB đội xe: ${fleetAvg.toFixed(2)} lít/100km dựa trên ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến · Km ước tính = số chuyến thực tế × quãng đường tuyến · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe.` : '';
+}
+
+// ================= SƠ ĐỒ GIƯỜNG (giữ nguyên chức năng) =================
+const SEAT_TEMPLATES = {
+  LIMOUSINE_24: { columns:[
+    {label:'Dãy B — Cửa lên', rows:[['B11','B12'],['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2']]},
+    {label:'Dãy A — Tài xế', rows:[['A11','A12'],['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']]}
+  ]},
+  LUXURY_34: { columns:[
+    {label:'Dãy C — Cửa lên', rows:[['C11','C12'],['C9','C10'],['C7','C8'],['C5','C6'],['C3','C4'],['C1','C2']]},
+    {label:'Dãy B', rows:[['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2'],[null,null]]},
+    {label:'Dãy A — Tài xế', rows:[['A11','A12'],['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']]}
+  ]},
+  GIUONG_40: { backRows:[['D10','D9','D8','D7','D6'],['D5','D4','D3','D2','D1']], columns:[
+    {label:'Dãy C — Cửa lên', rows:[['C9','C10'],['C7','C8'],['C5','C6'],['C3','C4'],['C1','C2']]},
+    {label:'Dãy B', rows:[['B9','B10'],['B7','B8'],['B5','B6'],['B3','B4'],['B1','B2']]},
+    {label:'Dãy A — Tài xế', rows:[['A9','A10'],['A7','A8'],['A5','A6'],['A3','A4'],['A1','A2']]}
+  ]}
+};
+Object.values(SEAT_TEMPLATES).forEach(t=>{
+  const all = []; (t.backRows||[]).forEach(r=>r.forEach(c=>{if(c)all.push(c);})); t.columns.forEach(col=>col.rows.forEach(r=>r.forEach(c=>{if(c)all.push(c);})));
+  t.allCodes = new Set(all);
+});
+function detectTemplateKey(cauHinh){
+  const s = String(cauHinh||'').toLowerCase();
+  if(s.includes('limousine')||s.trim()==='24') return 'LIMOUSINE_24';
+  if(s.includes('luxury')||s.trim()==='34') return 'LUXURY_34';
+  if(s.includes('giường')||s.includes('giuong')||s.trim()==='40') return 'GIUONG_40';
+  return null;
+}
+function seatStatusClass(row){
+  const t = row.trangThai;
+  if(t==='Hủy'||t==='Huỷ') return 'huy';
+  if(t==='Đặt chỗ') return 'datcho';
+  if(t==='Đã thanh toán') return (row.nguon==='Vé xe rẻ') ? 'vexere' : 'dathanhtoan';
+  return 'trong';
+}
+function initSeatMapOptions(){
+  if(!tierIsPro()) return;
+  const routes = Array.from(new Set(RAW.map(r=>r.tuyen))).sort();
+  const sel = $('#seatmapRoute'); const prev = sel.value;
+  sel.innerHTML = '<option value="">— Chọn tuyến —</option>' + routes.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if(routes.includes(prev)) sel.value = prev;
+  onSeatmapFilterChange();
+}
+function onSeatmapFilterChange(){
+  const tuyen = $('#seatmapRoute').value, dateVal = $('#seatmapDate').value;
+  const vehicleSel = $('#seatmapVehicle'); const prev = vehicleSel.value;
+  if(!tuyen || !dateVal){ vehicleSel.innerHTML = '<option value="">— Chọn biển số —</option>'; renderSeatMapUI('',''); return; }
+  const d = toDateOnly(new Date(dateVal));
+  const vehicles = Array.from(new Set(RAW.filter(r=>r.tuyen===tuyen && r.ngayDi && r.ngayDi.getTime()===d.getTime()).map(r=>r.xe))).sort();
+  vehicleSel.innerHTML = '<option value="">— Chọn biển số —</option>' + vehicles.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if(vehicles.includes(prev)) vehicleSel.value = prev;
+  renderSeatMapUI(tuyen, vehicleSel.value);
+}
+function seatMapCellHTML(code, seatByCode){
+  if(code===null) return '<div class="seat-cell empty"></div>';
+  const list = seatByCode.get(code);
+  if(!list || !list.length) return `<div class="seat-cell trong" title="Ghế ${code} — chưa có ai đặt"><span>${code}</span></div>`;
+  const r = list[0]; const cls = seatStatusClass(r); const dup = list.length>1?` ⚠×${list.length}`:'';
+  const title = (`Ghế ${code} — ` + list.map(x=>`${x.trangThai||'?'}${x.nguon==='Vé xe rẻ'?' (Vé xe rẻ)':''} · ${x.nhanVien||x.cnDaiLy||'?'} · ${fmtVND(x.thanhTien)}đ`).join(' | ')).replace(/"/g,'&quot;');
+  return `<div class="seat-cell ${cls}" title="${title}"><span>${code}${dup}</span><span class="price">${fmtVNDShort(r.thanhTien)}</span></div>`;
+}
+function seatMapRowHTML(codes, seatByCode){ return `<div class="seat-row">${codes.map(c=>seatMapCellHTML(c,seatByCode)).join('')}</div>`; }
+function buildSeatMapHTML(template, seatByCode){
+  let html='';
+  if(template.backRows) html += '<div class="seatmap-back">'+template.backRows.map(r=>seatMapRowHTML(r,seatByCode)).join('')+'</div>';
+  html += '<div class="seatmap-wrap">'+template.columns.map(col=>`<div class="seatmap-col"><div class="seatmap-col-label">${col.label}</div>${col.rows.map(r=>seatMapRowHTML(r,seatByCode)).join('')}</div>`).join('')+'</div>';
+  return html;
+}
+function renderSeatMapUI(tuyen, xe){
+  const dateVal = $('#seatmapDate').value;
+  const emptyEl = $('#seatmapEmpty'), contentEl = $('#seatmapContent');
+  $('#seatmapConfigHint').textContent = '';
+  if(!tuyen || !dateVal || !xe){ emptyEl.textContent='Chọn đủ Tuyến, Ngày đi và Biển số xe để xem sơ đồ giường.'; emptyEl.style.display='block'; contentEl.style.display='none'; return; }
+  const d = toDateOnly(new Date(dateVal));
+  const rows = RAW.filter(r=>r.tuyen===tuyen && r.xe===xe && r.ngayDi && r.ngayDi.getTime()===d.getTime());
+  if(!rows.length){ emptyEl.textContent='Không có dữ liệu vé cho lựa chọn này.'; emptyEl.style.display='block'; contentEl.style.display='none'; return; }
+  const cauHinhRow = rows.find(r=>r.cauHinh); const cauHinhVal = cauHinhRow?cauHinhRow.cauHinh:'';
+  const key = detectTemplateKey(cauHinhVal);
+  $('#seatmapConfigHint').textContent = cauHinhVal ? `Cấu hình: ${cauHinhVal}` : 'Chưa có Cấu hình (cột L) cho xe này.';
+  const seatByCode = new Map();
+  rows.forEach(r=>{ const code=r.maGhe; if(!code) return; if(!seatByCode.has(code)) seatByCode.set(code,[]); seatByCode.get(code).push(r); });
+  emptyEl.style.display='none'; contentEl.style.display='block';
+  const template = key ? SEAT_TEMPLATES[key] : null;
+  const grid = $('#seatmapGrid');
+  grid.innerHTML = template ? buildSeatMapHTML(template, seatByCode) : `<div style="color:var(--text-lo)">Không nhận diện được sơ đồ mẫu ứng với Cấu hình "${cauHinhVal||'(trống)'}".</div>`;
+  const placed = template ? template.allCodes : new Set();
+  const unknown = []; seatByCode.forEach((list,code)=>{ if(!placed.has(code)) unknown.push([code,list]); });
+  const unknownEl = $('#seatmapUnknown');
+  if(unknown.length){ unknownEl.style.display='block'; unknownEl.innerHTML = '⚠️ '+unknown.length+' ghế không khớp sơ đồ mẫu: '+unknown.map(([c,l])=>`<b>${c}</b> (${l.map(r=>r.trangThai||'?').join(', ')})`).join(' · '); }
+  else { unknownEl.style.display='none'; unknownEl.innerHTML=''; }
+}
+function renderSeatMap(){ renderSeatMapUI($('#seatmapRoute').value, $('#seatmapVehicle').value); }
+$('#seatmapRoute').addEventListener('change', onSeatmapFilterChange);
+$('#seatmapDate').addEventListener('change', onSeatmapFilterChange);
+$('#seatmapVehicle').addEventListener('change', renderSeatMap);
+</script>
+</body>
+</html>
