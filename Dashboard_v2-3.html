@@ -61,7 +61,11 @@
   .nav-btn.active{ background:linear-gradient(135deg, var(--amber), #ffcf3d); color:#1a1400; font-weight:700; box-shadow:0 6px 16px -6px rgba(242,183,5,0.5); }
   .nav-btn.pro-locked{ opacity:.4; cursor:not-allowed; }
   .nav-btn .lock{ margin-left:auto; font-size:11px; }
-  .sidebar-foot{ margin-top:auto; padding:14px 16px; border-top:1px solid var(--glass-border); }
+  .sidebar-foot{
+    position:fixed; left:14px; bottom:14px; width:var(--sidebar-w); box-sizing:border-box;
+    padding:14px 16px; background:var(--glass-bg); backdrop-filter:blur(20px) saturate(1.4); -webkit-backdrop-filter:blur(20px) saturate(1.4);
+    border:1px solid var(--glass-border); border-radius:16px; box-shadow:0 16px 34px -18px rgba(0,0,0,0.45); z-index:85;
+  }
   .content{ flex:1; min-width:0; padding:8px 10px 60px; }
 
   /* Mobile: sidebar collapses to floating bottom dock */
@@ -207,6 +211,28 @@
   .tier-count{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;}
   .drawer-section-title{ font-size:12.5px; font-weight:600; margin:18px 0 10px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px; }
 
+  .kpi-clickable{cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;}
+  .kpi-clickable:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,0.28);}
+  .kpi-zoom{font-size:10px; opacity:.55; margin-left:2px;}
+
+  /* modal (bubble chi tiết Chi phí / Lợi nhuận) */
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(4,7,15,0.6); backdrop-filter:blur(4px); z-index:110; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open{display:flex;}
+  .modal-box{ width:640px; max-width:100%; max-height:86vh; overflow-y:auto; background:var(--glass-bg); backdrop-filter:blur(26px) saturate(1.4); -webkit-backdrop-filter:blur(26px) saturate(1.4); border:1px solid var(--glass-border); border-radius:var(--radius); box-shadow:0 24px 70px rgba(0,0,0,0.5); }
+  .modal-head{ position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line); background:inherit; backdrop-filter:inherit; z-index:1; }
+  .modal-head h3{margin:0; font-size:16px;}
+  .modal-close{background:none; border:none; color:var(--text-lo); font-size:18px; cursor:pointer;}
+  .modal-close:hover{color:var(--text-hi);}
+  .modal-body{padding:20px 22px;}
+  .modal-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+  .modal-row:last-child{border-bottom:none;}
+  .modal-row .mr-label{color:var(--text-lo);}
+  .modal-row .mr-val{font-family:'JetBrains Mono',monospace; font-weight:600;}
+  .modal-bar-track{ height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden; margin-top:5px; }
+  .modal-bar-fill{ height:100%; border-radius:4px; }
+  .modal-subtitle{ font-size:12px; color:var(--text-lo); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line); font-weight:600; }
+  .modal-subtitle:first-child{border-top:none; padding-top:0; margin-top:0;}
+
   #loadNewBtn{position:fixed; bottom:20px; right:26px; z-index:5;}
   @media(max-width:860px){ #loadNewBtn{bottom:70px;} }
   ::-webkit-scrollbar{height:8px; width:8px;}
@@ -253,19 +279,20 @@
     <button class="nav-btn" data-view="people"><span class="ic">🧑‍✈️</span> Con người</button>
     <button class="nav-btn" data-view="channels"><span class="ic">🏢</span> Kênh bán hàng</button>
     <button class="nav-btn" data-view="cargo"><span class="ic">📦</span> Ký gửi hàng hoá<span class="lock" data-pro-lock>🔒</span></button>
-
-    <div class="sidebar-foot">
-      <div class="tier-badge lite" id="tierBadge" style="margin-bottom:10px; width:100%; justify-content:center;">🔒 LITE</div>
-      <div id="proUnlockBox">
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <input type="password" id="proCodeInput" placeholder="Mã Pro" style="width:100%;">
-          <button class="btn ghost" id="proUnlockBtn" style="width:100%; justify-content:center;">🔑 Mở khoá Pro</button>
-        </div>
-        <div class="pro-msg" id="proMsg"></div>
-      </div>
-      <button class="btn danger" id="proLogoutBtn" style="display:none; width:100%; justify-content:center; margin-top:6px;">✕ Thoát Pro</button>
-    </div>
+    <button class="nav-btn" data-view="costs"><span class="ic">🧾</span> Chi phí<span class="lock" data-pro-lock>🔒</span></button>
   </aside>
+
+  <div class="sidebar-foot">
+    <div class="tier-badge lite" id="tierBadge" style="margin-bottom:10px; width:100%; justify-content:center;">🔒 LITE</div>
+    <div id="proUnlockBox">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <input type="password" id="proCodeInput" placeholder="Mã Pro" style="width:100%;">
+        <button class="btn ghost" id="proUnlockBtn" style="width:100%; justify-content:center;">🔑 Mở khoá Pro</button>
+      </div>
+      <div class="pro-msg" id="proMsg"></div>
+    </div>
+    <button class="btn danger" id="proLogoutBtn" style="display:none; width:100%; justify-content:center; margin-top:6px;">✕ Thoát Pro</button>
+  </div>
 
   <main class="content">
     <div class="mobile-topbar">
@@ -293,6 +320,8 @@
       <div class="spacer"></div>
       <span class="label">Tuyến</span>
       <select id="routeFilter"><option value="__all">Tất cả tuyến</option></select>
+      <span class="label">Cấu hình</span>
+      <select id="configFilter"><option value="__all">Tất cả cấu hình</option></select>
     </div>
 
     <!-- ============ VIEW: TỔNG QUAN ============ -->
@@ -368,7 +397,7 @@
       <div class="card">
         <div class="table-scroll">
           <table id="fuelTable">
-            <thead><tr><th>Biển số</th><th class="num">Số chuyến</th><th class="num">Km ước tính</th><th class="num">Lít tiêu thụ</th><th class="num">Lít/100km</th><th>Đánh giá</th></tr></thead>
+            <thead><tr><th>Biển số</th><th class="num">Số chuyến</th><th class="num">Km</th><th class="num">Lít tiêu thụ</th><th class="num">Lít/100km</th><th>Nguồn số liệu</th><th>Đánh giá</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -418,13 +447,49 @@
       <div class="card">
         <div class="table-scroll">
           <table id="cargoTable">
-            <thead><tr><th>Ngày</th><th>Biển số</th><th>Nội dung hàng hoá</th><th class="num">Số tiền</th><th>Ghi chú</th></tr></thead>
+            <thead><tr><th>Ngày</th><th>Biển số</th><th>Cấu hình</th><th>Tuyến</th><th>Nội dung hàng hoá</th><th class="num">Số tiền</th><th>Ghi chú</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: CHI PHÍ ============ -->
+    <section class="view-panel" id="view-costs">
+      <div class="kpi-grid" id="costsKpis" style="grid-template-columns:repeat(4,1fr);"></div>
+      <div class="card" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="costsSearch" placeholder="Tìm biển số…" style="flex:1; min-width:200px;">
+        <select id="costsCategoryFilter"><option value="__all">Tất cả khoản chi</option></select>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Chi phí theo khoản mục</h3>
+          <div class="card-hint">Tổng trong kỳ &amp; bộ lọc đang chọn</div>
+          <canvas id="costsCatChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Chi phí theo xe (Top 10)</h3>
+          <canvas id="costsXeChart" height="220"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table id="costsTable">
+            <thead><tr><th>Ngày</th><th>Biển số</th><th>Cấu hình</th><th>Tuyến</th><th>Chi tiết khoản chi</th><th class="num">Km thực tế</th><th class="num">Lít đổ thực tế</th><th class="num">Tổng chi phí</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
     </section>
   </main>
+</div>
+
+<!-- ============ MODAL: Bubble chi tiết Chi phí / Lợi nhuận (từ Tổng quan) ============ -->
+<div class="modal-overlay" id="quickModalOverlay">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="quickModalTitle"></h3><button class="modal-close" id="quickModalClose">✕</button></div>
+    <div class="modal-body" id="quickModalBody"></div>
+  </div>
 </div>
 
 <!-- ============ DRAWER: Chi tiết 1 xe ============ -->
@@ -474,7 +539,7 @@ let RAW = [], COST_ROWS = [], CARGO_ROWS = [], COST_CATEGORIES = [];
 let FUEL_PRICE_LOOKUP = null, ROUTE_KM = {};
 let TIER = 'lite', PRO_NAME = null;
 let charts = {};
-let currentPeriod = 'all', customFrom = null, customTo = null, currentRoute = '__all';
+let currentPeriod = 'all', customFrom = null, customTo = null, currentRoute = '__all', currentConfig = '__all';
 let lastFiltered = [];
 
 function tierIsPro(){ return TIER === 'pro'; }
@@ -543,15 +608,27 @@ function normalizeCost(json){
     ngay = ngay == null ? null : toDateOnly(ngay instanceof Date ? ngay : new Date(ngay));
     const xe = getVal(row, hmap, 'Biển số xe') || getVal(row, hmap, 'Xe') || '(không rõ)';
     const tuyen = String(getVal(row, hmap, 'Tuyến') || '').trim(); // MỚI: có thể để trống — dòng trống vẫn tính, chỉ không tách được theo tuyến
+    // MỚI: cột thực tế (không bắt buộc) — nếu kế toán điền, dùng thay cho số ước tính từ ROUTE_KM
+    let kmThucTe = getVal(row, hmap, 'Km thực tế');
+    kmThucTe = typeof kmThucTe === 'string' ? parseFloat(kmThucTe.replace(/[^\d.-]/g,'')) : kmThucTe;
+    kmThucTe = (kmThucTe && !isNaN(kmThucTe)) ? kmThucTe : 0;
+    let litThucTe = getVal(row, hmap, 'Lít đổ thực tế') || getVal(row, hmap, 'Lít thực tế');
+    litThucTe = typeof litThucTe === 'string' ? parseFloat(litThucTe.replace(/[^\d.-]/g,'')) : litThucTe;
+    litThucTe = (litThucTe && !isNaN(litThucTe)) ? litThucTe : 0;
+    // MỚI: cột "Cấu hình" tuỳ chọn — chủ yếu để gán cấu hình cho XE TẢI (xe không bán vé nên
+    // không có sẵn trong RawData). Nếu để trống, dashboard sẽ tự suy ra từ Cấu hình phổ biến nhất
+    // của xe đó trong RawData (nếu có bán vé).
+    const cauHinh = String(getVal(row, hmap, 'Cấu hình') || '').trim();
+    const REAL_DATA_COLS = ['Biển số xe','Xe','Ngày','Tuyến','Km thực tế','Lít đổ thực tế','Lít thực tế','Cấu hình'];
     const categories = {};
     Object.keys(row).forEach(k=>{
       const kt = k.trim();
-      if(kt === 'Biển số xe' || kt === 'Xe' || kt === 'Ngày' || kt === 'Tuyến') return;
+      if(REAL_DATA_COLS.indexOf(kt) !== -1) return;
       let v = row[k];
       if(typeof v === 'string') v = parseFloat(v.replace(/[^\d.-]/g,'')) || 0;
       categories[kt] = isNaN(v) ? 0 : (v || 0);
     });
-    return { xe, ngay, tuyen, categories };
+    return { xe, ngay, tuyen, kmThucTe, litThucTe, cauHinh, categories };
   }).filter(r=>r.ngay);
 }
 
@@ -559,7 +636,8 @@ function normalizeCost(json){
 // Dòng chưa gán Tuyến (r.tuyen rỗng) vẫn được tính vào MỌI tuyến đang lọc — để không bị sót chi phí,
 // nhưng sẽ được đếm riêng (unTaggedCount) để cảnh báo a bổ sung cột Tuyến cho chính xác hơn.
 function costsForView(from, to, route){
-  const rows = costsInRange(from, to);
+  let rows = costsInRange(from, to);
+  if(currentConfig!=='__all') rows = rows.filter(r=>resolveXeConfig(r.xe)===currentConfig);
   if(route === '__all') return { rows, unTaggedCount: rows.filter(r=>!r.tuyen).length, isFiltered:false };
   const matched = rows.filter(r=> !r.tuyen || r.tuyen===route);
   return { rows: matched, unTaggedCount: matched.filter(r=>!r.tuyen).length, isFiltered:true };
@@ -577,7 +655,13 @@ function normalizeCargo(json){
     amount = typeof amount === 'string' ? parseFloat(amount.replace(/[^\d.-]/g,'')) : (amount||0);
     const item = getVal(row, hmap, 'Nội dung hàng hoá') || getVal(row, hmap, 'Nội dung hàng hóa') || getVal(row, hmap, 'Tên hàng hoá') || getVal(row, hmap, 'Mặt hàng') || '';
     const note = getVal(row, hmap, 'Ghi chú') || '';
-    return { xe, ngay, amount: isNaN(amount)?0:amount, item, note };
+    // MỚI: cột "Tuyến" tuỳ chọn — nếu điền, đơn ký gửi này chỉ được tính vào đúng tuyến đó khi lọc
+    // theo tuyến, tránh việc cộng dồn toàn bộ doanh thu ký gửi vào MỌI tuyến gây sai lợi nhuận.
+    const tuyen = String(getVal(row, hmap, 'Tuyến') || '').trim();
+    // MỚI: cột "Cấu hình" tuỳ chọn trong KyGui — dùng để đánh dấu XE TẢI (vì xe tải không bán vé
+    // nên RawData không có sẵn Cấu hình cho biển số đó).
+    const cauHinh = String(getVal(row, hmap, 'Cấu hình') || '').trim();
+    return { xe, ngay, amount: isNaN(amount)?0:amount, item, note, tuyen, cauHinh };
   }).filter(r=>r.ngay);
 }
 
@@ -595,6 +679,19 @@ function buildFuelPriceLookup(fuelPrices){
 
 function costsInRange(from,to){ return COST_ROWS.filter(r=>inRange(r.ngay, from, to)); }
 function cargoInRange(from,to){ return CARGO_ROWS.filter(r=>inRange(r.ngay, from, to)); }
+// Lọc ký gửi theo khoảng ngày + tuyến đang chọn.
+// KHÁC với costsForView: dòng ký gửi CHƯA gán Tuyến sẽ KHÔNG được tính vào 1 tuyến cụ thể nào
+// (loại khỏi kết quả khi route !== '__all'), vì đây là DOANH THU — nếu cứ cộng full vào mọi
+// tuyến như trước sẽ làm lợi nhuận của TỪNG tuyến bị thổi phồng sai (đây chính là lỗi a báo).
+// Chỉ khi xem "Tất cả tuyến" thì mới cộng đủ toàn bộ ký gửi (kể cả chưa gán tuyến).
+function cargoForView(from, to, route){
+  let rows = cargoInRange(from, to);
+  if(currentConfig!=='__all') rows = rows.filter(r=>resolveXeConfig(r.xe)===currentConfig);
+  if(route === '__all') return { rows, unTaggedCount: rows.filter(r=>!r.tuyen).length, isFiltered:false };
+  const matched = rows.filter(r=>r.tuyen===route);
+  const unTaggedCount = rows.filter(r=>!r.tuyen).length;
+  return { rows: matched, unTaggedCount, isFiltered:true };
+}
 
 function groupBy(rows, keyFn){
   const map = new Map();
@@ -712,7 +809,7 @@ function updateTierUI(){
     const needsPro = btn.querySelector('[data-pro-lock]') != null;
     btn.classList.toggle('pro-locked', needsPro && !isPro);
   });
-  if(!isPro && ['seatmap','fuel','cargo'].includes(activeView)) switchView('overview');
+  if(!isPro && ['seatmap','fuel','cargo','costs'].includes(activeView)) switchView('overview');
 }
 
 // Mobile: chạm badge LITE/PRO ở topbar để mở/đóng bottom sheet chứa nút Mở khoá Pro
@@ -754,6 +851,9 @@ $('#proUnlockBtn').addEventListener('click', ()=>{
           $('#proMsg').textContent = 'Đã mở khoá Pro ✓'; $('#proMsg').className = 'pro-msg ok';
           setTimeout(()=>{ $('.sidebar-foot').classList.remove('open'); }, 700);
           initSeatMapOptions();
+          buildVehicleConfigMap();
+          const configsPro = Array.from(new Set(VEHICLE_CONFIG_MAP.values())).sort();
+          $('#configFilter').innerHTML = '<option value="__all">Tất cả cấu hình</option>' + configsPro.map(c=>`<option value="${c}">${c}</option>`).join('');
           renderAll();
         })
         .withFailureHandler(function(err){
@@ -791,10 +891,11 @@ const VIEW_META = {
   fuel:{ title:'Định mức tiêu hao nhiên liệu', desc:'Toàn bộ lịch sử, so với trung bình đội xe' },
   people:{ title:'Con người', desc:'Ai đang đóng góp doanh thu nhiều nhất' },
   channels:{ title:'Kênh bán hàng', desc:'Doanh thu đến từ đâu' },
-  cargo:{ title:'Ký gửi hàng hoá', desc:'Sổ ghi chép ký gửi hàng hoá theo xe' }
+  cargo:{ title:'Ký gửi hàng hoá', desc:'Sổ ghi chép ký gửi hàng hoá theo xe' },
+  costs:{ title:'Chi phí vận hành', desc:'Sổ chi tiết từng khoản chi theo xe — lọc theo Tuyến/Cấu hình ở thanh trên' }
 };
 function switchView(id){
-  if(!tierIsPro() && ['seatmap','fuel','cargo'].includes(id)) return;
+  if(!tierIsPro() && ['seatmap','fuel','cargo','costs'].includes(id)) return;
   activeView = id;
   $$('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
   $$('.view-panel').forEach(v=>v.classList.toggle('active', v.id==='view-'+id));
@@ -819,6 +920,11 @@ function initApp(){
   const routes = Array.from(new Set(RAW.map(r=>r.tuyen))).sort();
   $('#routeFilter').innerHTML = '<option value="__all">Tất cả tuyến</option>' + routes.map(r=>`<option value="${r}">${r}</option>`).join('');
   $('#routeFilter').addEventListener('change', ()=>{ currentRoute = $('#routeFilter').value; renderAll(); });
+
+  buildVehicleConfigMap();
+  const configs = Array.from(new Set(VEHICLE_CONFIG_MAP.values())).sort();
+  $('#configFilter').innerHTML = '<option value="__all">Tất cả cấu hình</option>' + configs.map(c=>`<option value="${c}">${c}</option>`).join('');
+  $('#configFilter').addEventListener('change', ()=>{ currentConfig = $('#configFilter').value; renderAll(); });
 
   $$('.chip[data-period]').forEach(chip=>{
     chip.addEventListener('click', ()=>{
@@ -845,7 +951,8 @@ function initApp(){
 function renderAll(){
   const {from, to} = computeRange(currentPeriod);
   const routeMatch = (t)=> currentRoute==='__all' || t===currentRoute;
-  const filtered = RAW.filter(r=>inRange(r.ngayDi, from, to) && routeMatch(r.tuyen));
+  const configMatch = (xe)=> currentConfig==='__all' || resolveXeConfig(xe)===currentConfig;
+  const filtered = RAW.filter(r=>inRange(r.ngayDi, from, to) && routeMatch(r.tuyen) && configMatch(r.xe));
   lastFiltered = filtered;
 
   renderOverview(filtered, from, to);
@@ -855,6 +962,7 @@ function renderAll(){
   if(tierIsPro()){
     renderFuel();
     renderCargoView(from, to);
+    renderCostsView(from, to);
   }
 }
 
@@ -874,15 +982,17 @@ function renderOverview(filtered, from, to){
   if(tierIsPro()){
     const costView = costsForView(from, to, currentRoute);
     const costs = costView.rows;
-    const cargos = cargoInRange(from,to);
+    const cargoView = cargoForView(from, to, currentRoute);
+    const cargos = cargoView.rows;
     const totalCost = costs.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
     const totalCargo = cargos.reduce((s,r)=>s+r.amount,0);
     const totalRevenue = paidRevenue + pendingRevenue + totalCargo;
     const profit = totalRevenue - totalCost;
     const cancelRate = filtered.length ? cancelled.length/filtered.length : 0;
+    const cargoWarn = cargoView.isFiltered && cargoView.unTaggedCount ? ` · ⚠ ${cargoView.unTaggedCount} đơn ký gửi chưa gán Tuyến (không tính vào tuyến này)` : '';
     kpiHtml += `
-      <div class="kpi-card c-blue"><div class="kpi-label">Chi phí vận hành</div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ${costView.isFiltered && costView.unTaggedCount ? ' · ⚠ '+costView.unTaggedCount+' dòng chưa gán Tuyến' : ''}</div></div>
-      <div class="kpi-card ${profit<0?'c-danger':'c-teal'}"><div class="kpi-label">Lợi nhuận ròng</div><div class="kpi-value mono ${profit<0?'danger':''}">${fmtVNDShort(profit)}</div><div class="kpi-sub">Gồm ${fmtVNDShort(pendingRevenue)} đặt chỗ + ${fmtVNDShort(totalCargo)} ký gửi</div></div>
+      <div class="kpi-card c-blue kpi-clickable" id="kpiCostCard"><div class="kpi-label">Chi phí vận hành <span class="kpi-zoom">🔍</span></div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ${costView.isFiltered && costView.unTaggedCount ? ' · ⚠ '+costView.unTaggedCount+' dòng chưa gán Tuyến' : ''}</div></div>
+      <div class="kpi-card ${profit<0?'c-danger':'c-teal'} kpi-clickable" id="kpiProfitCard"><div class="kpi-label">Lợi nhuận ròng <span class="kpi-zoom">🔍</span></div><div class="kpi-value mono ${profit<0?'danger':''}">${fmtVNDShort(profit)}</div><div class="kpi-sub">Gồm ${fmtVNDShort(pendingRevenue)} đặt chỗ + ${fmtVNDShort(totalCargo)} ký gửi${cargoWarn}</div></div>
       <div class="kpi-card ${cancelRate>0.4?'c-danger':''}"><div class="kpi-label">Tỷ lệ huỷ vé</div><div class="kpi-value mono ${cancelRate>0.4?'danger':''}">${fmtPct(cancelRate)}</div><div class="kpi-sub">${fmtInt(cancelled.length)} / ${fmtInt(filtered.length)} vé</div></div>`;
   }
   $('#ovKpis').innerHTML = kpiHtml;
@@ -935,7 +1045,9 @@ function renderOverviewAlerts(filtered, from, to){
   g.forEach((v,k)=>{ const rate = v.total? v.cancelled/v.total : 0; if(tierIsPro() && rate>0.4) alerts.push({level:'danger', text:`Tuyến ${k} đang huỷ ${fmtPct(rate)} — cao bất thường.`}); });
 
   if(tierIsPro()){
-    const costs = costsForView(from, to, currentRoute).rows, cargos = cargoInRange(from,to);
+    const costs = costsForView(from, to, currentRoute).rows;
+    const cargoViewA = cargoForView(from, to, currentRoute);
+    const cargos = cargoViewA.rows;
     const revByXe = new Map(), costByXe = new Map();
     filtered.filter(r=>r.trangThai!=='Hủy').forEach(r=>revByXe.set(r.xe,(revByXe.get(r.xe)||0)+r.thanhTien));
     cargos.forEach(r=>revByXe.set(r.xe,(revByXe.get(r.xe)||0)+r.amount));
@@ -945,6 +1057,9 @@ function renderOverviewAlerts(filtered, from, to){
     allXe.forEach(xe=>{ if((costByXe.get(xe)||0) > (revByXe.get(xe)||0)) lossCount++; });
     if(lossCount) alerts.push({level:'danger', text:`${lossCount} xe đang lỗ trong kỳ đang lọc — xem mục Đội xe để xử lý.`});
 
+    if(cargoViewA.isFiltered && cargoViewA.unTaggedCount){
+      alerts.push({level:'warn', text:`${cargoViewA.unTaggedCount} đơn ký gửi chưa gán Tuyến — không được tính vào tuyến đang lọc để tránh sai lợi nhuận. Xem mục Ký gửi hàng hoá hoặc bỏ lọc tuyến để thấy đủ.`});
+    }
     if(cargos.length){
       const fuelCost = costs.reduce((s,r)=>s+(r.categories['Nhiên liệu']||0),0);
       const totalCargo = cargos.reduce((s,r)=>s+r.amount,0);
@@ -969,13 +1084,16 @@ function renderFleet(filtered, from, to){
   if(!tierIsPro()){
     $('#fleetHint').textContent = 'Bản Lite: chỉ thấy doanh thu đã thanh toán. Bấm 1 dòng để xem chi tiết.';
     const g = groupBy(scoped, r=>r.xe);
-    FLEET_ROWS = Array.from(g.entries()).map(([xe,v])=>({xe, count:v.count, revenue:v.revenue, cost:0, cargo:0, profit:v.revenue, margin: v.revenue?1:0, pending:0, cancelRate:0}));
-    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['count','Số vé'],['revenue','Doanh thu']]);
+    FLEET_ROWS = Array.from(g.entries()).map(([xe,v])=>({xe, cauHinh: resolveXeConfig(xe), count:v.count, revenue:v.revenue, cost:0, cargo:0, profit:v.revenue, margin: v.revenue?1:0, pending:0, cancelRate:0}));
+    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['cauHinh','Cấu hình'],['count','Số vé'],['revenue','Doanh thu']]);
   } else {
     const costView = costsForView(from, to, currentRoute);
-    const costs = costView.rows, cargos = cargoInRange(from,to);
+    const costs = costView.rows;
+    const cargoViewF = cargoForView(from, to, currentRoute);
+    const cargos = cargoViewF.rows;
     $('#fleetHint').textContent = 'Bấm tiêu đề cột để sắp xếp · bấm 1 dòng để xem chi tiết + chi phí + ký gửi'
-      + (costView.isFiltered && costView.unTaggedCount ? ` · ⚠ ${costView.unTaggedCount} dòng chi phí chưa gán Tuyến (đang tính chung cho mọi tuyến)` : '');
+      + (costView.isFiltered && costView.unTaggedCount ? ` · ⚠ ${costView.unTaggedCount} dòng chi phí chưa gán Tuyến (đang tính chung cho mọi tuyến)` : '')
+      + (cargoViewF.isFiltered && cargoViewF.unTaggedCount ? ` · ⚠ ${cargoViewF.unTaggedCount} đơn ký gửi chưa gán Tuyến (không tính vào tuyến này)` : '');
     const costByXe = new Map(); costs.forEach(r=>costByXe.set(r.xe,(costByXe.get(r.xe)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)));
     const cargoByXe = new Map(); cargos.forEach(r=>cargoByXe.set(r.xe,(cargoByXe.get(r.xe)||0)+r.amount));
     const statByXe = new Map();
@@ -999,12 +1117,13 @@ function renderFleet(filtered, from, to){
       return { xe, isTruck, count:s.count, revenue:s.paid, pending:s.pending, cargo, cost,
         ticketProfit, ticketMargin, profit, margin: revenue?profit/revenue:0, cancelRate: s.total? s.cancelled/s.total:0 };
     });
-    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['count','Số vé'],['revenue','Doanh thu TT'],['pending','Đặt chỗ'],['cargo','Ký gửi'],['cost','Chi phí'],['profit','Lợi nhuận'],['margin','Biên LN'],['cancelRate','Tỷ lệ huỷ']]);
+    FLEET_ROWS.forEach(r=>{ r.cauHinh = resolveXeConfig(r.xe); });
+    $('#fleetTableHead').innerHTML = headerCells([['xe','Biển số'],['cauHinh','Cấu hình'],['count','Số vé'],['revenue','Doanh thu TT'],['pending','Đặt chỗ'],['cargo','Ký gửi'],['cost','Chi phí'],['profit','Lợi nhuận'],['margin','Biên LN'],['cancelRate','Tỷ lệ huỷ']]);
   }
   bindFleetSort();
   applyFleetSortAndRender();
 }
-function headerCells(cols){ return cols.map(([key,label])=>`<th class="${key==='xe'?'':'num'}" data-sort="${key}">${label}</th>`).join('') + '<th></th>'; }
+function headerCells(cols){ return cols.map(([key,label])=>`<th class="${(key==='xe'||key==='cauHinh')?'':'num'}" data-sort="${key}">${label}</th>`).join('') + '<th></th>'; }
 function bindFleetSort(){
   $$('#fleetTableHead th[data-sort]').forEach(th=>{
     th.addEventListener('click', ()=>{
@@ -1027,12 +1146,13 @@ function applyFleetSortAndRender(){
   const tbody = $('#fleetTable tbody');
   if(!tierIsPro()){
     tbody.innerHTML = rows.map(r=>`<tr data-xe="${r.xe}" style="cursor:pointer;">
-      <td class="mono">${r.xe}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtVND(r.revenue)}</td>
+      <td class="mono">${r.xe}</td><td>${configChip(r.cauHinh)}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtVND(r.revenue)}</td>
       <td><button class="row-detail-btn" data-xe="${r.xe}">Chi tiết</button></td>
-    </tr>`).join('') || emptyRow(4);
+    </tr>`).join('') || emptyRow(5);
   } else {
     tbody.innerHTML = rows.map(r=>`<tr data-xe="${r.xe}" style="cursor:pointer;">
       <td class="mono">${r.isTruck ? '🚛 ' : ''}${r.xe}</td>
+      <td>${configChip(r.cauHinh)}</td>
       <td class="num mono">${fmtInt(r.count)}</td>
       <td class="num mono">${fmtVND(r.revenue)}</td>
       <td class="num mono" style="color:${r.pending?'var(--pink)':'var(--text-lo)'}">${fmtVND(r.pending)}</td>
@@ -1042,7 +1162,7 @@ function applyFleetSortAndRender(){
       <td class="num mono" style="color:${r.margin<0?'var(--danger)':'var(--text-lo)'}">${fmtPct(r.margin)}${(!r.isTruck && r.cargo) ? `<div style="font-size:9.5px; font-weight:400;">vé: ${fmtPct(r.ticketMargin)}</div>` : ''}</td>
       <td class="num mono" style="color:${r.cancelRate>0.4?'var(--danger)':'var(--text-lo)'}">${r.isTruck ? '—' : fmtPct(r.cancelRate)}</td>
       <td><button class="row-detail-btn" data-xe="${r.xe}">Chi tiết</button></td>
-    </tr>`).join('') || emptyRow(10);
+    </tr>`).join('') || emptyRow(11);
   }
   $$('#fleetTable .row-detail-btn').forEach(btn=>btn.addEventListener('click', (e)=>{ e.stopPropagation(); openVehicleDrawer(btn.dataset.xe); }));
   $$('#fleetTable tbody tr').forEach(tr=>tr.addEventListener('click', ()=>openVehicleDrawer(tr.dataset.xe)));
@@ -1076,7 +1196,7 @@ function openVehicleDrawer(xe){
     const drawerCostView0 = costsForView(from, to, currentRoute);
     const costRowsAll0 = drawerCostView0.rows.filter(r=>r.xe===xe);
     const grandCost0 = costRowsAll0.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
-    const cargoRows0 = cargoInRange(from,to).filter(r=>r.xe===xe);
+    const cargoRows0 = cargoForView(from, to, currentRoute).rows.filter(r=>r.xe===xe);
     const cargoTotal0 = cargoRows0.reduce((s,r)=>s+r.amount,0);
     const ticketRevenue0 = (statMap.get('Đã thanh toán')?.revenue||0) + (statMap.get('Đặt chỗ')?.revenue||0);
     const ticketProfit0 = ticketRevenue0 - grandCost0;
@@ -1127,7 +1247,7 @@ function openVehicleDrawer(xe){
       $('#drawerCostTable tbody').innerHTML = bodyHtml;
     } else { $('#drawerCostBlock').style.display='none'; }
 
-    const cargoRows = cargoInRange(from,to).filter(r=>r.xe===xe).sort((a,b)=>b.ngay-a.ngay);
+    const cargoRows = cargoForView(from, to, currentRoute).rows.filter(r=>r.xe===xe).sort((a,b)=>b.ngay-a.ngay);
     if(cargoRows.length){
       $('#drawerCargoBlock').style.display='block';
       $('#drawerCargoTable tbody').innerHTML = cargoRows.map(r=>`<tr><td class="mono">${r.ngay.toLocaleDateString('vi-VN')}</td><td>${r.item||'(chưa ghi)'}</td><td class="num mono" style="color:var(--blue)">${fmtVND(r.amount)}</td></tr>`).join('');
@@ -1141,6 +1261,118 @@ function openVehicleDrawer(xe){
 }
 $('#drawerClose').addEventListener('click', ()=>$('#vehicleDrawerOverlay').classList.remove('open'));
 $('#vehicleDrawerOverlay').addEventListener('click', (e)=>{ if(e.target.id==='vehicleDrawerOverlay') $('#vehicleDrawerOverlay').classList.remove('open'); });
+
+// ================= MODAL: Bubble chi tiết Chi phí / Lợi nhuận (bấm từ thẻ KPI ở Tổng quan) =================
+function openQuickModal(title, bodyHtml){
+  $('#quickModalTitle').textContent = title;
+  $('#quickModalBody').innerHTML = bodyHtml;
+  $('#quickModalOverlay').classList.add('open');
+}
+function closeQuickModal(){ $('#quickModalOverlay').classList.remove('open'); }
+$('#quickModalClose').addEventListener('click', closeQuickModal);
+$('#quickModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='quickModalOverlay') closeQuickModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeQuickModal(); });
+// Bấm thẻ "Chi phí vận hành"/"Lợi nhuận ròng" ở Tổng quan để mở bubble chi tiết.
+// Dùng UỶ QUYỀN SỰ KIỆN (event delegation) gắn 1 LẦN DUY NHẤT lên #ovKpis (khung KPI cố định,
+// không bao giờ bị xoá/tạo lại) thay vì gắn lại addEventListener lên từng thẻ mỗi lần render —
+// cách cũ có thể bị lỡ nhịp nếu innerHTML render lại trước/khác thời điểm gắn sự kiện.
+// Cách này chắc chắn hoạt động vì #ovKpis luôn tồn tại, chỉ có NỘI DUNG bên trong nó thay đổi.
+const ovKpisEl = document.getElementById('ovKpis');
+if(ovKpisEl){
+  ovKpisEl.addEventListener('click', function(e){
+    if(e.target.closest('#kpiCostCard')) openCostModal();
+    else if(e.target.closest('#kpiProfitCard')) openProfitModal();
+  });
+}
+
+function modalBar(label, value, max, color, sub){
+  const pct = max>0 ? Math.max(2, Math.round(value/max*100)) : 0;
+  return `<div class="modal-row" style="display:block;">
+    <div style="display:flex; justify-content:space-between;"><span class="mr-label">${label}</span><span class="mr-val">${fmtVND(value)} đ</span></div>
+    <div class="modal-bar-track"><div class="modal-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+    ${sub?`<div style="font-size:11px; color:var(--text-lo); margin-top:3px;">${sub}</div>`:''}
+  </div>`;
+}
+
+function openCostModal(){
+  const {from, to} = computeRange(currentPeriod);
+  const costView = costsForView(from, to, currentRoute);
+  const costs = costView.rows;
+  const totalCost = costs.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+
+  // Theo khoản mục (Nhiên liệu, Bến bãi, Sửa chữa...)
+  const byCat = new Map();
+  costs.forEach(r=>Object.entries(r.categories).forEach(([k,v])=>{ if(!v) return; byCat.set(k,(byCat.get(k)||0)+v); }));
+  const catRows = Array.from(byCat.entries()).sort((a,b)=>b[1]-a[1]);
+
+  // Theo tuyến
+  const byRoute = new Map();
+  costs.forEach(r=>{ const k = r.tuyen || '(chưa gán tuyến)'; byRoute.set(k,(byRoute.get(k)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)); });
+  const routeRows = Array.from(byRoute.entries()).sort((a,b)=>b[1]-a[1]);
+
+  // Theo xe (top 8)
+  const byXe = new Map();
+  costs.forEach(r=>byXe.set(r.xe,(byXe.get(r.xe)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)));
+  const xeRows = Array.from(byXe.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const maxCat = catRows.length ? catRows[0][1] : 0;
+  const maxRoute = routeRows.length ? routeRows[0][1] : 0;
+  const maxXe = xeRows.length ? xeRows[0][1] : 0;
+  const palette = COLORS.palette;
+
+  let html = `<div class="modal-row"><span class="mr-label">Tổng chi phí (kỳ &amp; tuyến đang lọc)</span><span class="mr-val" style="font-size:16px; color:var(--blue);">${fmtVND(totalCost)} đ</span></div>`;
+  if(costView.isFiltered && costView.unTaggedCount) html += `<div style="font-size:11.5px; color:var(--pink); margin-top:4px;">⚠ ${costView.unTaggedCount} dòng chi phí chưa gán Tuyến — đang được tính chung vào tuyến này.</div>`;
+
+  html += `<div class="modal-subtitle">Theo khoản mục chi phí</div>`;
+  html += catRows.length ? catRows.map(([k,v],i)=>modalBar(k, v, maxCat, palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  html += `<div class="modal-subtitle">Theo tuyến</div>`;
+  html += routeRows.length ? routeRows.map(([k,v],i)=>modalBar(k, v, maxRoute, k==='(chưa gán tuyến)'?'var(--text-lo)':palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  html += `<div class="modal-subtitle">Theo xe (Top 8 chi phí cao nhất)</div>`;
+  html += xeRows.length ? xeRows.map(([k,v],i)=>modalBar(k, v, maxXe, palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  openQuickModal('💰 Chi tiết chi phí vận hành', html);
+}
+
+function openProfitModal(){
+  const {from, to} = computeRange(currentPeriod);
+  const routeMatch = (t)=> currentRoute==='__all' || t===currentRoute;
+  const configMatch = (xe)=> currentConfig==='__all' || resolveXeConfig(xe)===currentConfig;
+  const filtered = RAW.filter(r=>inRange(r.ngayDi, from, to) && routeMatch(r.tuyen) && configMatch(r.xe));
+  const paidRevenue = filtered.filter(r=>r.trangThai==='Đã thanh toán').reduce((s,r)=>s+r.thanhTien,0);
+  const pendingRevenue = filtered.filter(r=>r.trangThai==='Đặt chỗ').reduce((s,r)=>s+r.thanhTien,0);
+  const costView = costsForView(from, to, currentRoute);
+  const totalCost = costView.rows.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+  const cargoView = cargoForView(from, to, currentRoute);
+  const totalCargo = cargoView.rows.reduce((s,r)=>s+r.amount,0);
+  const totalRevenue = paidRevenue + pendingRevenue + totalCargo;
+  const profit = totalRevenue - totalCost;
+  const margin = totalRevenue ? profit/totalRevenue : 0;
+
+  let html = `<div class="modal-row"><span class="mr-label">Doanh thu thực thu (vé đã TT)</span><span class="mr-val" style="color:var(--amber);">+${fmtVND(paidRevenue)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Đặt chỗ chưa thanh toán</span><span class="mr-val" style="color:var(--pink);">+${fmtVND(pendingRevenue)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Doanh thu ký gửi hàng hoá</span><span class="mr-val" style="color:var(--blue);">+${fmtVND(totalCargo)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Chi phí vận hành</span><span class="mr-val" style="color:var(--danger);">−${fmtVND(totalCost)} đ</span></div>
+    <div class="modal-row" style="border-top:1.5px solid var(--line); margin-top:4px; padding-top:12px;"><span class="mr-label" style="font-weight:700; color:var(--text-hi);">Lợi nhuận ròng</span><span class="mr-val" style="font-size:17px; color:${profit<0?'var(--danger)':'var(--teal)'};">${fmtVND(profit)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Biên lợi nhuận / Doanh thu</span><span class="mr-val">${fmtPct(margin)}</span></div>`;
+  if(cargoView.isFiltered && cargoView.unTaggedCount) html += `<div style="font-size:11.5px; color:var(--pink); margin-top:6px;">⚠ ${cargoView.unTaggedCount} đơn ký gửi chưa gán Tuyến — KHÔNG được tính vào lợi nhuận tuyến này (chỉ tính khi xem Tất cả tuyến).</div>`;
+
+  // Lợi nhuận theo tuyến (dùng dữ liệu toàn bộ kỳ, không giới hạn theo currentRoute, để so sánh)
+  const allInPeriod = RAW.filter(r=>inRange(r.ngayDi, from, to) && configMatch(r.xe));
+  const routes = Array.from(new Set(allInPeriod.map(r=>r.tuyen))).sort();
+  const rows = routes.map(rt=>{
+    const rev = allInPeriod.filter(r=>r.tuyen===rt && r.trangThai!=='Hủy').reduce((s,r)=>s+r.thanhTien,0);
+    const cost = costsInRange(from,to).filter(r=>(!r.tuyen||r.tuyen===rt) && (currentConfig==='__all'||resolveXeConfig(r.xe)===currentConfig)).reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+    const cargo = cargoInRange(from,to).filter(r=>r.tuyen===rt && (currentConfig==='__all'||resolveXeConfig(r.xe)===currentConfig)).reduce((s,r)=>s+r.amount,0);
+    return { rt, profit: (rev+cargo)-cost };
+  }).sort((a,b)=>b.profit-a.profit);
+  const maxAbs = Math.max(1, ...rows.map(r=>Math.abs(r.profit)));
+  html += `<div class="modal-subtitle">Lợi nhuận theo tuyến (toàn kỳ đang lọc, không giới hạn theo Tuyến đang chọn)</div>`;
+  html += rows.length ? rows.map(r=>modalBar(r.rt, Math.abs(r.profit), maxAbs, r.profit<0?COLORS.danger:COLORS.teal, r.profit<0?'Đang lỗ':'')).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  openQuickModal('📈 Chi tiết lợi nhuận ròng', html);
+}
 $('#drawerSeatmapBtn').addEventListener('click', ()=>{
   if(!tierIsPro()){ alert('Sơ đồ giường chỉ có ở bản Pro.'); return; }
   $('#vehicleDrawerOverlay').classList.remove('open');
@@ -1206,10 +1438,12 @@ function renderCargoTableFiltered(){
   $('#cargoTable tbody').innerHTML = rows.map(r=>`<tr>
     <td class="mono">${r.ngay.toLocaleDateString('vi-VN')}</td>
     <td class="mono">${r.xe}</td>
+    <td>${configChip(resolveXeConfig(r.xe))}</td>
+    <td>${r.tuyen || '<span style="color:var(--text-lo)">(chưa gán)</span>'}</td>
     <td>${r.item || '<span style="color:var(--text-lo)">(chưa ghi nội dung)</span>'}</td>
     <td class="num mono" style="color:var(--blue)">${fmtVND(r.amount)}</td>
     <td style="color:var(--text-lo)">${r.note||''}</td>
-  </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text-lo)">Không có dữ liệu ký gửi trong kỳ đang lọc</td></tr>';
+  </tr>`).join('') || '<tr><td colspan="7" style="color:var(--text-lo)">Không có dữ liệu ký gửi trong kỳ đang lọc</td></tr>';
 }
 $('#cargoSearch').addEventListener('input', renderCargoTableFiltered);
 
@@ -1217,30 +1451,51 @@ $('#cargoSearch').addEventListener('input', renderCargoTableFiltered);
 function renderFuel(){
   const fuelCatName = COST_CATEGORIES.find(c=>c==='Nhiên liệu');
   if(!fuelCatName || !FUEL_PRICE_LOOKUP){
-    $('#fuelTable tbody').innerHTML = '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có cột "Nhiên liệu" trong ChiPhi hoặc chưa có dữ liệu GiaNhienLieu</td></tr>';
+    $('#fuelTable tbody').innerHTML = '<tr><td colspan="7" style="color:var(--text-lo)">Chưa có cột "Nhiên liệu" trong ChiPhi hoặc chưa có dữ liệu GiaNhienLieu</td></tr>';
     $('#fuelNote').textContent = ''; return;
   }
   const MIN_TRIPS = 5;
   const tripSeen = new Set(); const tripKmByXe = new Map(); const tripCountByXe = new Map();
   RAW.forEach(r=>{
     if(r.trangThai==='Hủy') return;
-    const key = r.xe+'|'+r.ngayDi.getTime()+'|'+r.chuyen;
+    // Đếm 1 chuyến theo Biển số + Ngày đi + Tuyến (KHÔNG dùng cột "Chuyến" vì dữ liệu cột này
+    // không đủ sạch để làm định danh — cùng 1 chuyến xe thật có thể bị ghi lệch nhãn "Chuyến"
+    // giữa các dòng vé, gây đếm trùng thành nhiều chuyến ảo => thổi phồng Km => Lít/100km bị tính thấp hơn thực tế.
+    // Giả định: 1 xe tối đa 1 chuyến/tuyến/ngày — đúng với thực tế vận hành nhiều chặng/ngày (mỗi chặng đã tách theo Tuyến riêng).
+    const key = r.xe+'|'+r.ngayDi.getTime()+'|'+r.tuyen;
     if(tripSeen.has(key)) return; tripSeen.add(key);
     const km = ROUTE_KM[r.tuyen] || 0;
     tripKmByXe.set(r.xe, (tripKmByXe.get(r.xe)||0)+km);
     tripCountByXe.set(r.xe, (tripCountByXe.get(r.xe)||0)+1);
   });
-  const litByXe = new Map();
+  // Lít tiêu thụ ƯỚC TÍNH từ chi phí nhiên liệu (VNĐ) / giá xăng dầu ngày đó — dùng khi không có số thực tế.
+  const litEstByXe = new Map();
+  // Số liệu THỰC TẾ (nếu kế toán điền cột "Km thực tế" / "Lít đổ thực tế" trong ChiPhi) — ưu tiên dùng khi có,
+  // vì Km ước tính theo ROUTE_KM chỉ là quãng đường cao tốc 1 chiều, KHÔNG tính các chặng đón/trả khách nội thành
+  // (VD: Văn phòng Lê Hồng Phong, Bà Điểm, 590 Bình Long...) => Km ước tính luôn THẤP hơn Km xe chạy thật =>
+  // Lít/100km tính ra bị thấp giả tạo so với định mức thực (~24L/100km).
+  const realKmByXe = new Map(); const realLitByXe = new Map();
   COST_ROWS.forEach(r=>{
-    const vnd = r.categories[fuelCatName]||0; if(!vnd) return;
-    const price = FUEL_PRICE_LOOKUP(r.ngay); if(!price) return;
-    litByXe.set(r.xe, (litByXe.get(r.xe)||0) + vnd/price);
+    const vnd = r.categories[fuelCatName]||0;
+    if(vnd){
+      const price = FUEL_PRICE_LOOKUP(r.ngay);
+      if(price) litEstByXe.set(r.xe, (litEstByXe.get(r.xe)||0) + vnd/price);
+    }
+    if(r.kmThucTe>0) realKmByXe.set(r.xe, (realKmByXe.get(r.xe)||0) + r.kmThucTe);
+    if(r.litThucTe>0) realLitByXe.set(r.xe, (realLitByXe.get(r.xe)||0) + r.litThucTe);
   });
-  const allXe = Array.from(new Set([...tripKmByXe.keys(), ...litByXe.keys()])).sort();
+  const allXe = Array.from(new Set([...tripKmByXe.keys(), ...litEstByXe.keys(), ...realKmByXe.keys()])).sort();
   let rows = allXe.map(xe=>{
-    const km = tripKmByXe.get(xe)||0, lit = litByXe.get(xe)||0, trips = tripCountByXe.get(xe)||0;
+    const trips = tripCountByXe.get(xe)||0;
+    const hasReal = (realKmByXe.get(xe)||0) > 0 && (realLitByXe.get(xe)||0) > 0;
+    let km, lit, basis;
+    if(hasReal){
+      km = realKmByXe.get(xe); lit = realLitByXe.get(xe); basis = 'real';
+    } else {
+      km = tripKmByXe.get(xe)||0; lit = litEstByXe.get(xe)||0; basis = 'est';
+    }
     const per100 = km ? lit/(km/100) : null;
-    return { xe, trips, km, lit, per100, reliable: trips>=MIN_TRIPS && km>0 };
+    return { xe, trips, km, lit, per100, basis, reliable: hasReal ? km>0 : (trips>=MIN_TRIPS && km>0) };
   });
   const reliableRows = rows.filter(r=>r.reliable);
   const totalKm = reliableRows.reduce((s,r)=>s+r.km,0), totalLit = reliableRows.reduce((s,r)=>s+r.lit,0);
@@ -1254,9 +1509,13 @@ function renderFuel(){
       else if(diff<-0.15) assessment = '<span class="tag" style="background:rgba(94,234,212,0.14); color:var(--teal);">Thấp bất thường</span>';
       else assessment = '<span class="tag" style="background:rgba(140,150,175,0.14); color:var(--text-lo);">Bình thường</span>';
     }
-    return `<tr><td class="mono">${r.xe}</td><td class="num mono">${fmtInt(r.trips)}</td><td class="num mono">${fmtInt(r.km)}</td><td class="num mono">${r.lit.toFixed(1)}</td><td class="num mono">${r.per100!=null?r.per100.toFixed(2):'—'}</td><td>${assessment}</td></tr>`;
-  }).join('') || '<tr><td colspan="6" style="color:var(--text-lo)">Chưa có dữ liệu</td></tr>';
-  $('#fuelNote').textContent = fleetAvg ? `Tính trên TOÀN BỘ dữ liệu (không đổi theo bộ lọc ngày/tuyến) · TB đội xe: ${fleetAvg.toFixed(2)} lít/100km dựa trên ${reliableRows.length} xe chạy ≥${MIN_TRIPS} chuyến · Km ước tính = số chuyến thực tế × quãng đường tuyến · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe.` : '';
+    const basisTag = r.basis==='real'
+      ? '<span class="tag" style="background:rgba(94,234,212,0.14); color:var(--teal);">Số liệu thực</span>'
+      : '<span class="tag" style="background:rgba(140,150,175,0.14); color:var(--text-lo);">Ước tính</span>';
+    return `<tr><td class="mono">${r.xe}</td><td class="num mono">${fmtInt(r.trips)}</td><td class="num mono">${fmtInt(r.km)}</td><td class="num mono">${r.lit.toFixed(1)}</td><td class="num mono">${r.per100!=null?r.per100.toFixed(2):'—'}</td><td>${basisTag}</td><td>${assessment}</td></tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--text-lo)">Chưa có dữ liệu</td></tr>';
+  const nReal = rows.filter(r=>r.basis==='real').length;
+  $('#fuelNote').textContent = fleetAvg ? `Tính trên TOÀN BỘ dữ liệu (không đổi theo bộ lọc ngày/tuyến) · TB đội xe: ${fleetAvg.toFixed(2)} lít/100km dựa trên ${reliableRows.length} xe · ${nReal} xe dùng SỐ LIỆU THỰC (cột "Km thực tế"/"Lít đổ thực tế" trong ChiPhi), còn lại là ƯỚC TÍNH (số chuyến × quãng đường tuyến, chưa tính chặng đón/trả khách nội thành nên có thể thấp hơn thực tế) · Số chuyến đếm theo Biển số+Ngày+Tuyến · "Cao/Thấp bất thường" = lệch >15% so với TB đội xe · Muốn số chính xác tuyệt đối: điền "Km thực tế" (công-tơ-mét) và "Lít đổ thực tế" cho từng dòng ChiPhi.` : '';
 }
 
 // ================= SƠ ĐỒ GIƯỜNG (giữ nguyên chức năng) =================
@@ -1286,6 +1545,51 @@ function detectTemplateKey(cauHinh){
   if(s.includes('luxury')||s.trim()==='34') return 'LUXURY_34';
   if(s.includes('giường')||s.includes('giuong')||s.trim()==='40') return 'GIUONG_40';
   return null;
+}
+
+// ================= CẤU HÌNH XE (lọc & hiển thị: LUXURY_34 / XE TẢI / ...) =================
+// Nhãn cấu hình chuẩn hoá để hiển thị/lọc — khác với detectTemplateKey (dùng riêng cho sơ đồ giường,
+// không có mẫu cho XE TẢI nên không thể dùng chung).
+function normalizeConfigLabel(raw){
+  const s = String(raw||'').trim();
+  if(!s) return '';
+  const low = s.toLowerCase();
+  if(low.includes('tải') || low.includes('tai')) return 'XE TẢI';
+  if(low.includes('limousine') || low.trim()==='24') return 'LIMOUSINE_24';
+  if(low.includes('luxury') || low.trim()==='34') return 'LUXURY_34';
+  if(low.includes('giường') || low.includes('giuong') || low.trim()==='40') return 'GIUONG_40';
+  return s.toUpperCase(); // giữ nguyên nhãn tuỳ chỉnh khác nếu có
+}
+let VEHICLE_CONFIG_MAP = new Map(); // Biển số -> nhãn cấu hình đã chuẩn hoá
+function buildVehicleConfigMap(){
+  const map = new Map();
+  // 1) Suy ra từ RawData: cấu hình xuất hiện nhiều nhất cho mỗi biển số (áp dụng cho xe khách có bán vé)
+  const countByXe = new Map();
+  RAW.forEach(r=>{
+    if(!r.cauHinh) return;
+    const label = normalizeConfigLabel(r.cauHinh); if(!label) return;
+    if(!countByXe.has(r.xe)) countByXe.set(r.xe, new Map());
+    const m = countByXe.get(r.xe); m.set(label, (m.get(label)||0)+1);
+  });
+  countByXe.forEach((m, xe)=>{
+    let best = null, bestN = 0;
+    m.forEach((n,label)=>{ if(n>bestN){ best=label; bestN=n; } });
+    if(best) map.set(xe, best);
+  });
+  // 2) Ghi đè bằng cột "Cấu hình" khai báo trực tiếp trong ChiPhi/KyGui — ưu tiên cao nhất,
+  // vì đây là nguồn DUY NHẤT có cấu hình cho XE TẢI (không hề bán vé nên không có trong RawData).
+  [...COST_ROWS, ...CARGO_ROWS].forEach(r=>{
+    if(!r.cauHinh) return;
+    const label = normalizeConfigLabel(r.cauHinh); if(!label) return;
+    map.set(r.xe, label);
+  });
+  VEHICLE_CONFIG_MAP = map;
+}
+function resolveXeConfig(xe){ return VEHICLE_CONFIG_MAP.get(xe) || '(chưa rõ)'; }
+function configChip(label){
+  if(!label || label==='(chưa rõ)') return '<span style="color:var(--text-lo)">—</span>';
+  const isTruckCfg = label==='XE TẢI';
+  return `<span class="tag" style="background:${isTruckCfg?'rgba(124,158,242,0.14)':'rgba(140,150,175,0.14)'}; color:${isTruckCfg?'var(--blue)':'var(--text-lo)'};">${label}</span>`;
 }
 function seatStatusClass(row){
   const t = row.trangThai;
