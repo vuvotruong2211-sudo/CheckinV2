@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nhập Thu Chi Tài Xế</title>
+<style>
+  :root{
+    --bg:#F6F4EE; --surface:#FFFFFF; --surface-2:#EFEBE1; --ink:#1C2B2A; --ink-soft:#51625F;
+    --muted:#8A968F; --border:#DDD6C6; --accent:#0E6E5C; --accent-ink:#F6F4EE;
+    --thu:#1E8A52; --thu-bg:#E5F3EA; --chi:#C1402E; --chi-bg:#FBEAE6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Arial,sans-serif;padding:16px;}
+  .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+  h1{font-size:18px;margin:0 0 2px;}
+  .sub{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .card h2{font-size:14px;margin:0 0 12px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;}
+  .field label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+  select,input,textarea{font:inherit;font-size:14px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);width:100%;background:#fff;color:var(--ink);}
+  .seg{display:flex;gap:8px;}
+  .seg button{flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--ink-soft);font:inherit;font-weight:700;font-size:13px;cursor:pointer;}
+  .seg button.thu.active{border-color:var(--thu);background:var(--thu-bg);color:var(--thu);}
+  .seg button.chi.active{border-color:var(--chi);background:var(--chi-bg);color:var(--chi);}
+  .btn{width:100%;padding:11px;border:none;border-radius:10px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer;}
+  .btn:disabled{opacity:.5;}
+  .status{font-size:12.5px;margin-top:8px;min-height:16px;}
+  .status.ok{color:var(--thu);} .status.err{color:var(--chi);}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px;background:var(--surface-2);}
+  td{padding:6px 8px;border-top:1px solid var(--border);}
+  td.amt{text-align:right;font-weight:600;white-space:nowrap;}
+  .thu-c{color:var(--thu);} .chi-c{color:var(--chi);}
+  tr.tot td{background:var(--surface-2);font-weight:800;}
+  .toolbar{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;}
+  .toolbar .field{flex:1;min-width:130px;margin-bottom:0;}
+  .empty{text-align:center;color:var(--muted);padding:14px;font-size:12.5px;}
+  .del{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;}
+  .del:hover{color:var(--chi);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>Nhập Thu · Chi tài xế</h1>
+    <div class="sub">Ghi trực tiếp vào sheet RAW_DATA — dùng để đối soát cuối ngày</div>
+  </div>
+
+  <section class="card">
+    <h2>Nhập giao dịch</h2>
+    <form id="entryForm">
+      <div class="field"><label>Tài xế / Sổ</label><select id="fDriver" required></select></div>
+      <div class="field"><label>Ngày</label><input type="date" id="fDate" required></div>
+      <div class="field"><label>Loại</label>
+        <div class="seg">
+          <button type="button" class="thu active" data-kind="thu">↓ THU</button>
+          <button type="button" class="chi" data-kind="chi">↑ CHI</button>
+        </div>
+      </div>
+      <div class="field"><label>Nội dung (mẫu)</label><select id="fContent" required></select></div>
+      <div class="field" id="fCustomWrap" style="display:none">
+        <label>Nội dung chi tiết</label><input type="text" id="fCustom" placeholder="Nhập nội dung...">
+      </div>
+      <div class="field"><label>Số tiền (VNĐ)</label><input type="text" inputmode="numeric" id="fAmount" placeholder="0" required></div>
+      <div class="field"><label>Ghi chú (SĐT, mã tham chiếu...)</label><input type="text" id="fNote"></div>
+      <button type="submit" class="btn" id="submitBtn">Lưu giao dịch</button>
+      <div class="status" id="statusMsg"></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Đối soát theo tài xế</h2>
+    <div class="toolbar">
+      <div class="field"><label>Xem theo</label>
+        <select id="scopeSelect">
+          <option value="day">Ngày đang chọn</option>
+          <option value="month">Cả tháng</option>
+        </select>
+      </div>
+    </div>
+    <table><thead><tr><th>Tài xế</th><th style="text-align:right">Thu</th><th style="text-align:right">Chi</th><th style="text-align:right">Chênh lệch</th></tr></thead>
+    <tbody id="summaryBody"></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Giao dịch trong ngày</h2>
+    <table><thead><tr><th>Tài xế</th><th>Nội dung</th><th style="text-align:right">Số tiền</th><th></th></tr></thead>
+    <tbody id="logBody"></tbody></table>
+  </section>
+</div>
+
+<script>
+var OTHER = '__other__';
+var cfg = { drivers: [], thu: [], chi: [] };
+var kind = 'thu';
+
+function todayISO(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmt(n){ return Number(n||0).toLocaleString('vi-VN'); }
+
+var fDriver = document.getElementById('fDriver');
+var fDate = document.getElementById('fDate');
+var fContent = document.getElementById('fContent');
+var fCustomWrap = document.getElementById('fCustomWrap');
+var fCustom = document.getElementById('fCustom');
+var fAmount = document.getElementById('fAmount');
+var fNote = document.getElementById('fNote');
+var submitBtn = document.getElementById('submitBtn');
+var statusMsg = document.getElementById('statusMsg');
+var scopeSelect = document.getElementById('scopeSelect');
+
+document.querySelectorAll('.seg button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    kind = btn.dataset.kind;
+    document.querySelectorAll('.seg button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+    populateContent();
+  });
+});
+
+fContent.addEventListener('change', function(){
+  fCustomWrap.style.display = fContent.value === OTHER ? 'block' : 'none';
+});
+
+fAmount.addEventListener('input', function(){
+  var d = fAmount.value.replace(/[^\d]/g,'');
+  fAmount.value = d ? Number(d).toLocaleString('vi-VN') : '';
+});
+
+function populateContent(){
+  var list = kind === 'thu' ? cfg.thu : cfg.chi;
+  fContent.innerHTML = list.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('') +
+    '<option value="'+OTHER+'">Khác... (nhập tay)</option>';
+  fCustomWrap.style.display = 'none';
+}
+
+function setStatus(msg, cls){
+  statusMsg.textContent = msg;
+  statusMsg.className = 'status ' + (cls||'');
+}
+
+document.getElementById('entryForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var content = fContent.value === OTHER ? fCustom.value.trim() : fContent.value;
+  var amount = Number(fAmount.value.replace(/[^\d]/g,''));
+  if(!content){ setStatus('Vui lòng nhập nội dung.', 'err'); return; }
+  if(!amount){ setStatus('Số tiền không hợp lệ.', 'err'); return; }
+
+  var payload = {
+    driver: fDriver.value, date: fDate.value || todayISO(),
+    kind: kind, content: content, amount: amount, note: fNote.value.trim()
+  };
+  submitBtn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function(res){
+      submitBtn.disabled = false;
+      setStatus('Đã lưu STT #' + res.stt + ' — ' + fmt(amount) + ' đ', 'ok');
+      fAmount.value = ''; fNote.value = ''; fCustom.value = '';
+      refresh();
+    })
+    .withFailureHandler(function(err){
+      submitBtn.disabled = false;
+      setStatus('Lỗi: ' + err.message, 'err');
+    })
+    .addEntry(payload);
+});
+
+function renderSummary(rows){
+  var totThu=0, totChi=0;
+  var html = cfg.drivers.map(function(d){
+    var s = rows[d] || {thu:0, chi:0};
+    totThu += s.thu; totChi += s.chi;
+    var diff = s.thu - s.chi;
+    return '<tr><td>'+d+'</td><td class="amt thu-c">'+(s.thu?fmt(s.thu):'–')+'</td>' +
+      '<td class="amt chi-c">'+(s.chi?fmt(s.chi):'–')+'</td>' +
+      '<td class="amt" style="color:'+(diff>=0?'var(--thu)':'var(--chi)')+'">'+fmt(diff)+'</td></tr>';
+  }).join('');
+  html += '<tr class="tot"><td>TỔNG CỘNG</td><td class="amt thu-c">'+fmt(totThu)+'</td>' +
+    '<td class="amt chi-c">'+fmt(totChi)+'</td><td class="amt">'+fmt(totThu-totChi)+'</td></tr>';
+  document.getElementById('summaryBody').innerHTML = html;
+}
+
+function renderLog(list){
+  var body = document.getElementById('logBody');
+  if(!list.length){ body.innerHTML = '<tr><td colspan="4" class="empty">Chưa có giao dịch trong ngày này.</td></tr>'; return; }
+  body.innerHTML = list.map(function(e){
+    return '<tr><td>'+e.driver+'</td><td>'+e.content+'</td>' +
+      '<td class="amt '+(e.thu?'thu-c':'chi-c')+'">'+fmt(e.thu||e.chi)+'</td>' +
+      '<td><button class="del" onclick="delEntry('+e.row+')">✕</button></td></tr>';
+  }).join('');
+}
+
+function delEntry(row){
+  if(!confirm('Xoá giao dịch này?')) return;
+  google.script.run.withSuccessHandler(refresh).withFailureHandler(function(err){ setStatus('Lỗi xoá: '+err.message,'err'); }).deleteEntry(row);
+}
+
+function refresh(){
+  var date = fDate.value || todayISO();
+  google.script.run.withSuccessHandler(renderSummary).getSummary(date, scopeSelect.value);
+  google.script.run.withSuccessHandler(renderLog).listEntries(date, '');
+}
+
+scopeSelect.addEventListener('change', refresh);
+fDate.addEventListener('change', refresh);
+
+fDate.value = todayISO();
+google.script.run.withSuccessHandler(function(data){
+  cfg = data;
+  fDriver.innerHTML = cfg.drivers.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
+  populateContent();
+  refresh();
+}).getInitData();
+</script>
+</body>
+</html>
