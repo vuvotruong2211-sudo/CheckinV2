@@ -211,6 +211,28 @@
   .tier-count{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;}
   .drawer-section-title{ font-size:12.5px; font-weight:600; margin:18px 0 10px; padding-top:16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px; }
 
+  .kpi-clickable{cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;}
+  .kpi-clickable:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,0.28);}
+  .kpi-zoom{font-size:10px; opacity:.55; margin-left:2px;}
+
+  /* modal (bubble chi tiết Chi phí / Lợi nhuận) */
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(4,7,15,0.6); backdrop-filter:blur(4px); z-index:110; align-items:center; justify-content:center; padding:20px; }
+  .modal-overlay.open{display:flex;}
+  .modal-box{ width:640px; max-width:100%; max-height:86vh; overflow-y:auto; background:var(--glass-bg); backdrop-filter:blur(26px) saturate(1.4); -webkit-backdrop-filter:blur(26px) saturate(1.4); border:1px solid var(--glass-border); border-radius:var(--radius); box-shadow:0 24px 70px rgba(0,0,0,0.5); }
+  .modal-head{ position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line); background:inherit; backdrop-filter:inherit; z-index:1; }
+  .modal-head h3{margin:0; font-size:16px;}
+  .modal-close{background:none; border:none; color:var(--text-lo); font-size:18px; cursor:pointer;}
+  .modal-close:hover{color:var(--text-hi);}
+  .modal-body{padding:20px 22px;}
+  .modal-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+  .modal-row:last-child{border-bottom:none;}
+  .modal-row .mr-label{color:var(--text-lo);}
+  .modal-row .mr-val{font-family:'JetBrains Mono',monospace; font-weight:600;}
+  .modal-bar-track{ height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden; margin-top:5px; }
+  .modal-bar-fill{ height:100%; border-radius:4px; }
+  .modal-subtitle{ font-size:12px; color:var(--text-lo); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line); font-weight:600; }
+  .modal-subtitle:first-child{border-top:none; padding-top:0; margin-top:0;}
+
   #loadNewBtn{position:fixed; bottom:20px; right:26px; z-index:5;}
   @media(max-width:860px){ #loadNewBtn{bottom:70px;} }
   ::-webkit-scrollbar{height:8px; width:8px;}
@@ -257,6 +279,7 @@
     <button class="nav-btn" data-view="people"><span class="ic">🧑‍✈️</span> Con người</button>
     <button class="nav-btn" data-view="channels"><span class="ic">🏢</span> Kênh bán hàng</button>
     <button class="nav-btn" data-view="cargo"><span class="ic">📦</span> Ký gửi hàng hoá<span class="lock" data-pro-lock>🔒</span></button>
+    <button class="nav-btn" data-view="costs"><span class="ic">🧾</span> Chi phí<span class="lock" data-pro-lock>🔒</span></button>
   </aside>
 
   <div class="sidebar-foot">
@@ -430,7 +453,43 @@
         </div>
       </div>
     </section>
+
+    <!-- ============ VIEW: CHI PHÍ ============ -->
+    <section class="view-panel" id="view-costs">
+      <div class="kpi-grid" id="costsKpis" style="grid-template-columns:repeat(4,1fr);"></div>
+      <div class="card" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="costsSearch" placeholder="Tìm biển số…" style="flex:1; min-width:200px;">
+        <select id="costsCategoryFilter"><option value="__all">Tất cả khoản chi</option></select>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>Chi phí theo khoản mục</h3>
+          <div class="card-hint">Tổng trong kỳ &amp; bộ lọc đang chọn</div>
+          <canvas id="costsCatChart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Chi phí theo xe (Top 10)</h3>
+          <canvas id="costsXeChart" height="220"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table id="costsTable">
+            <thead><tr><th>Ngày</th><th>Biển số</th><th>Cấu hình</th><th>Tuyến</th><th>Chi tiết khoản chi</th><th class="num">Km thực tế</th><th class="num">Lít đổ thực tế</th><th class="num">Tổng chi phí</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
+</div>
+
+<!-- ============ MODAL: Bubble chi tiết Chi phí / Lợi nhuận (từ Tổng quan) ============ -->
+<div class="modal-overlay" id="quickModalOverlay">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="quickModalTitle"></h3><button class="modal-close" id="quickModalClose">✕</button></div>
+    <div class="modal-body" id="quickModalBody"></div>
+  </div>
 </div>
 
 <!-- ============ DRAWER: Chi tiết 1 xe ============ -->
@@ -750,7 +809,7 @@ function updateTierUI(){
     const needsPro = btn.querySelector('[data-pro-lock]') != null;
     btn.classList.toggle('pro-locked', needsPro && !isPro);
   });
-  if(!isPro && ['seatmap','fuel','cargo'].includes(activeView)) switchView('overview');
+  if(!isPro && ['seatmap','fuel','cargo','costs'].includes(activeView)) switchView('overview');
 }
 
 // Mobile: chạm badge LITE/PRO ở topbar để mở/đóng bottom sheet chứa nút Mở khoá Pro
@@ -832,10 +891,11 @@ const VIEW_META = {
   fuel:{ title:'Định mức tiêu hao nhiên liệu', desc:'Toàn bộ lịch sử, so với trung bình đội xe' },
   people:{ title:'Con người', desc:'Ai đang đóng góp doanh thu nhiều nhất' },
   channels:{ title:'Kênh bán hàng', desc:'Doanh thu đến từ đâu' },
-  cargo:{ title:'Ký gửi hàng hoá', desc:'Sổ ghi chép ký gửi hàng hoá theo xe' }
+  cargo:{ title:'Ký gửi hàng hoá', desc:'Sổ ghi chép ký gửi hàng hoá theo xe' },
+  costs:{ title:'Chi phí vận hành', desc:'Sổ chi tiết từng khoản chi theo xe — lọc theo Tuyến/Cấu hình ở thanh trên' }
 };
 function switchView(id){
-  if(!tierIsPro() && ['seatmap','fuel','cargo'].includes(id)) return;
+  if(!tierIsPro() && ['seatmap','fuel','cargo','costs'].includes(id)) return;
   activeView = id;
   $$('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
   $$('.view-panel').forEach(v=>v.classList.toggle('active', v.id==='view-'+id));
@@ -902,6 +962,7 @@ function renderAll(){
   if(tierIsPro()){
     renderFuel();
     renderCargoView(from, to);
+    renderCostsView(from, to);
   }
 }
 
@@ -930,12 +991,16 @@ function renderOverview(filtered, from, to){
     const cancelRate = filtered.length ? cancelled.length/filtered.length : 0;
     const cargoWarn = cargoView.isFiltered && cargoView.unTaggedCount ? ` · ⚠ ${cargoView.unTaggedCount} đơn ký gửi chưa gán Tuyến (không tính vào tuyến này)` : '';
     kpiHtml += `
-      <div class="kpi-card c-blue"><div class="kpi-label">Chi phí vận hành</div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ${costView.isFiltered && costView.unTaggedCount ? ' · ⚠ '+costView.unTaggedCount+' dòng chưa gán Tuyến' : ''}</div></div>
-      <div class="kpi-card ${profit<0?'c-danger':'c-teal'}"><div class="kpi-label">Lợi nhuận ròng</div><div class="kpi-value mono ${profit<0?'danger':''}">${fmtVNDShort(profit)}</div><div class="kpi-sub">Gồm ${fmtVNDShort(pendingRevenue)} đặt chỗ + ${fmtVNDShort(totalCargo)} ký gửi${cargoWarn}</div></div>
+      <div class="kpi-card c-blue kpi-clickable" id="kpiCostCard"><div class="kpi-label">Chi phí vận hành <span class="kpi-zoom">🔍</span></div><div class="kpi-value mono">${fmtVNDShort(totalCost)}</div><div class="kpi-sub">${fmtVND(totalCost)} đ${costView.isFiltered && costView.unTaggedCount ? ' · ⚠ '+costView.unTaggedCount+' dòng chưa gán Tuyến' : ''}</div></div>
+      <div class="kpi-card ${profit<0?'c-danger':'c-teal'} kpi-clickable" id="kpiProfitCard"><div class="kpi-label">Lợi nhuận ròng <span class="kpi-zoom">🔍</span></div><div class="kpi-value mono ${profit<0?'danger':''}">${fmtVNDShort(profit)}</div><div class="kpi-sub">Gồm ${fmtVNDShort(pendingRevenue)} đặt chỗ + ${fmtVNDShort(totalCargo)} ký gửi${cargoWarn}</div></div>
       <div class="kpi-card ${cancelRate>0.4?'c-danger':''}"><div class="kpi-label">Tỷ lệ huỷ vé</div><div class="kpi-value mono ${cancelRate>0.4?'danger':''}">${fmtPct(cancelRate)}</div><div class="kpi-sub">${fmtInt(cancelled.length)} / ${fmtInt(filtered.length)} vé</div></div>`;
   }
   $('#ovKpis').innerHTML = kpiHtml;
   $('#ovKpis').style.gridTemplateColumns = tierIsPro() ? 'repeat(5,1fr)' : 'repeat(2,1fr)';
+  // Gắn lại sự kiện bấm mỗi lần render lại KPI (dùng addEventListener thay vì onclick="" —
+  // onclick gắn trực tiếp trong HTML không đáng tin cậy trong sandbox IFRAME của Apps Script HtmlService).
+  const kpiCostCard = $('#kpiCostCard'); if(kpiCostCard) kpiCostCard.addEventListener('click', openCostModal);
+  const kpiProfitCard = $('#kpiProfitCard'); if(kpiProfitCard) kpiProfitCard.addEventListener('click', openProfitModal);
 
   // Trend chart
   const revByDay = new Map(), costByDay = new Map();
@@ -1200,6 +1265,106 @@ function openVehicleDrawer(xe){
 }
 $('#drawerClose').addEventListener('click', ()=>$('#vehicleDrawerOverlay').classList.remove('open'));
 $('#vehicleDrawerOverlay').addEventListener('click', (e)=>{ if(e.target.id==='vehicleDrawerOverlay') $('#vehicleDrawerOverlay').classList.remove('open'); });
+
+// ================= MODAL: Bubble chi tiết Chi phí / Lợi nhuận (bấm từ thẻ KPI ở Tổng quan) =================
+function openQuickModal(title, bodyHtml){
+  $('#quickModalTitle').textContent = title;
+  $('#quickModalBody').innerHTML = bodyHtml;
+  $('#quickModalOverlay').classList.add('open');
+}
+function closeQuickModal(){ $('#quickModalOverlay').classList.remove('open'); }
+$('#quickModalClose').addEventListener('click', closeQuickModal);
+$('#quickModalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='quickModalOverlay') closeQuickModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeQuickModal(); });
+
+function modalBar(label, value, max, color, sub){
+  const pct = max>0 ? Math.max(2, Math.round(value/max*100)) : 0;
+  return `<div class="modal-row" style="display:block;">
+    <div style="display:flex; justify-content:space-between;"><span class="mr-label">${label}</span><span class="mr-val">${fmtVND(value)} đ</span></div>
+    <div class="modal-bar-track"><div class="modal-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+    ${sub?`<div style="font-size:11px; color:var(--text-lo); margin-top:3px;">${sub}</div>`:''}
+  </div>`;
+}
+
+function openCostModal(){
+  const {from, to} = computeRange(currentPeriod);
+  const costView = costsForView(from, to, currentRoute);
+  const costs = costView.rows;
+  const totalCost = costs.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+
+  // Theo khoản mục (Nhiên liệu, Bến bãi, Sửa chữa...)
+  const byCat = new Map();
+  costs.forEach(r=>Object.entries(r.categories).forEach(([k,v])=>{ if(!v) return; byCat.set(k,(byCat.get(k)||0)+v); }));
+  const catRows = Array.from(byCat.entries()).sort((a,b)=>b[1]-a[1]);
+
+  // Theo tuyến
+  const byRoute = new Map();
+  costs.forEach(r=>{ const k = r.tuyen || '(chưa gán tuyến)'; byRoute.set(k,(byRoute.get(k)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)); });
+  const routeRows = Array.from(byRoute.entries()).sort((a,b)=>b[1]-a[1]);
+
+  // Theo xe (top 8)
+  const byXe = new Map();
+  costs.forEach(r=>byXe.set(r.xe,(byXe.get(r.xe)||0)+Object.values(r.categories).reduce((a,b)=>a+b,0)));
+  const xeRows = Array.from(byXe.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  const maxCat = catRows.length ? catRows[0][1] : 0;
+  const maxRoute = routeRows.length ? routeRows[0][1] : 0;
+  const maxXe = xeRows.length ? xeRows[0][1] : 0;
+  const palette = COLORS.palette;
+
+  let html = `<div class="modal-row"><span class="mr-label">Tổng chi phí (kỳ &amp; tuyến đang lọc)</span><span class="mr-val" style="font-size:16px; color:var(--blue);">${fmtVND(totalCost)} đ</span></div>`;
+  if(costView.isFiltered && costView.unTaggedCount) html += `<div style="font-size:11.5px; color:var(--pink); margin-top:4px;">⚠ ${costView.unTaggedCount} dòng chi phí chưa gán Tuyến — đang được tính chung vào tuyến này.</div>`;
+
+  html += `<div class="modal-subtitle">Theo khoản mục chi phí</div>`;
+  html += catRows.length ? catRows.map(([k,v],i)=>modalBar(k, v, maxCat, palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  html += `<div class="modal-subtitle">Theo tuyến</div>`;
+  html += routeRows.length ? routeRows.map(([k,v],i)=>modalBar(k, v, maxRoute, k==='(chưa gán tuyến)'?'var(--text-lo)':palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  html += `<div class="modal-subtitle">Theo xe (Top 8 chi phí cao nhất)</div>`;
+  html += xeRows.length ? xeRows.map(([k,v],i)=>modalBar(k, v, maxXe, palette[i%palette.length])).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  openQuickModal('💰 Chi tiết chi phí vận hành', html);
+}
+
+function openProfitModal(){
+  const {from, to} = computeRange(currentPeriod);
+  const routeMatch = (t)=> currentRoute==='__all' || t===currentRoute;
+  const configMatch = (xe)=> currentConfig==='__all' || resolveXeConfig(xe)===currentConfig;
+  const filtered = RAW.filter(r=>inRange(r.ngayDi, from, to) && routeMatch(r.tuyen) && configMatch(r.xe));
+  const paidRevenue = filtered.filter(r=>r.trangThai==='Đã thanh toán').reduce((s,r)=>s+r.thanhTien,0);
+  const pendingRevenue = filtered.filter(r=>r.trangThai==='Đặt chỗ').reduce((s,r)=>s+r.thanhTien,0);
+  const costView = costsForView(from, to, currentRoute);
+  const totalCost = costView.rows.reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+  const cargoView = cargoForView(from, to, currentRoute);
+  const totalCargo = cargoView.rows.reduce((s,r)=>s+r.amount,0);
+  const totalRevenue = paidRevenue + pendingRevenue + totalCargo;
+  const profit = totalRevenue - totalCost;
+  const margin = totalRevenue ? profit/totalRevenue : 0;
+
+  let html = `<div class="modal-row"><span class="mr-label">Doanh thu thực thu (vé đã TT)</span><span class="mr-val" style="color:var(--amber);">+${fmtVND(paidRevenue)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Đặt chỗ chưa thanh toán</span><span class="mr-val" style="color:var(--pink);">+${fmtVND(pendingRevenue)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Doanh thu ký gửi hàng hoá</span><span class="mr-val" style="color:var(--blue);">+${fmtVND(totalCargo)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Chi phí vận hành</span><span class="mr-val" style="color:var(--danger);">−${fmtVND(totalCost)} đ</span></div>
+    <div class="modal-row" style="border-top:1.5px solid var(--line); margin-top:4px; padding-top:12px;"><span class="mr-label" style="font-weight:700; color:var(--text-hi);">Lợi nhuận ròng</span><span class="mr-val" style="font-size:17px; color:${profit<0?'var(--danger)':'var(--teal)'};">${fmtVND(profit)} đ</span></div>
+    <div class="modal-row"><span class="mr-label">Biên lợi nhuận / Doanh thu</span><span class="mr-val">${fmtPct(margin)}</span></div>`;
+  if(cargoView.isFiltered && cargoView.unTaggedCount) html += `<div style="font-size:11.5px; color:var(--pink); margin-top:6px;">⚠ ${cargoView.unTaggedCount} đơn ký gửi chưa gán Tuyến — KHÔNG được tính vào lợi nhuận tuyến này (chỉ tính khi xem Tất cả tuyến).</div>`;
+
+  // Lợi nhuận theo tuyến (dùng dữ liệu toàn bộ kỳ, không giới hạn theo currentRoute, để so sánh)
+  const allInPeriod = RAW.filter(r=>inRange(r.ngayDi, from, to) && configMatch(r.xe));
+  const routes = Array.from(new Set(allInPeriod.map(r=>r.tuyen))).sort();
+  const rows = routes.map(rt=>{
+    const rev = allInPeriod.filter(r=>r.tuyen===rt && r.trangThai!=='Hủy').reduce((s,r)=>s+r.thanhTien,0);
+    const cost = costsInRange(from,to).filter(r=>(!r.tuyen||r.tuyen===rt) && (currentConfig==='__all'||resolveXeConfig(r.xe)===currentConfig)).reduce((s,r)=>s+Object.values(r.categories).reduce((a,b)=>a+b,0),0);
+    const cargo = cargoInRange(from,to).filter(r=>r.tuyen===rt && (currentConfig==='__all'||resolveXeConfig(r.xe)===currentConfig)).reduce((s,r)=>s+r.amount,0);
+    return { rt, profit: (rev+cargo)-cost };
+  }).sort((a,b)=>b.profit-a.profit);
+  const maxAbs = Math.max(1, ...rows.map(r=>Math.abs(r.profit)));
+  html += `<div class="modal-subtitle">Lợi nhuận theo tuyến (toàn kỳ đang lọc, không giới hạn theo Tuyến đang chọn)</div>`;
+  html += rows.length ? rows.map(r=>modalBar(r.rt, Math.abs(r.profit), maxAbs, r.profit<0?COLORS.danger:COLORS.teal, r.profit<0?'Đang lỗ':'')).join('') : '<div style="color:var(--text-lo); font-size:13px;">Chưa có dữ liệu.</div>';
+
+  openQuickModal('📈 Chi tiết lợi nhuận ròng', html);
+}
 $('#drawerSeatmapBtn').addEventListener('click', ()=>{
   if(!tierIsPro()){ alert('Sơ đồ giường chỉ có ở bản Pro.'); return; }
   $('#vehicleDrawerOverlay').classList.remove('open');
