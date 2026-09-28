@@ -114,7 +114,7 @@ table{width:100%;border-collapse:collapse}
 <body>
 <div class="container">
   <div class="topbar">
-    <h1>💰 Thu Chi</h1>
+    <h1>💰 Thu Chi <span style="font-size:11px;font-weight:400;color:#8a8984">v3.2</span></h1>
     <div id="route-bar" class="chipset"></div>
     <div class="sync"><span id="sync-lbl"></span><button class="btn btn-sm" onclick="refreshAll()">🔄 Tải lại</button></div>
   </div>
@@ -147,7 +147,7 @@ table{width:100%;border-collapse:collapse}
 
     <div class="card">
       <div class="card-title">👥 Cá nhân <span class="hint" style="text-transform:none;font-weight:400">— chọn 1 người để nhập &amp; xem sổ của người đó</span></div>
-      <div class="people" id="people"></div>
+      <div class="people" id="people"><span class="hint">⏳ Đang tải dữ liệu từ Sheet...</span></div>
     </div>
 
     <!-- Chưa chọn ai: bảng tổng quan -->
@@ -267,12 +267,12 @@ table{width:100%;border-collapse:collapse}
 </div>
 <div class="toast" id="toast"></div>
 
-<script type="application/json" id="boot-data"><?!= bootJson ?></script>
 <script>
-// Dữ liệu nhúng sẵn từ server lúc mở trang (config + 2 tháng gần nhất).
-// Nếu không đọc được (VD Code.gs chưa cập nhật) → tự tải qua server, KHÔNG làm chết cả trang.
-let BOOT=null;
-try{BOOT=JSON.parse(document.getElementById('boot-data').textContent)}catch(e){BOOT=null}
+// Bắt MỌI lỗi JS và hiện lên trang (không còn trang trắng im lặng)
+window.onerror=function(msg,src,line){var b=document.getElementById('err-box');if(b){document.getElementById('err-msg').textContent='Lỗi trang: '+msg+' (dòng '+line+')';b.classList.remove('hidden')}};
+</script>
+<script>
+const APP_VER='v3.2';
 
 // ── STATE ─────────────────────────────────────────────────
 let CFG={routes:{},routeOrder:[]};
@@ -672,15 +672,18 @@ function start(){
   if(!CFG.routeOrder.length)showErr('Sheet CONFIG chưa có dòng nào (cột A = Tuyến, cột B = Cá nhân).');
 }
 function boot(){
+  $('err-box').classList.add('hidden');
   $('sync-lbl').textContent='đang tải...';
-  run('refreshAll',[prevYm(curDate.slice(0,7)),curDate.slice(0,7)])
-    .then(res=>{CFG=res.cfg||CFG;store={};ingest(res.months);start()})
-    .catch(e=>{$('sync-lbl').textContent='';showErr((e&&e.message)||String(e))});
+  const slow=setTimeout(()=>{$('sync-lbl').textContent='server đang khởi động, chờ thêm chút...'},12000);
+  run('getBoot')
+    .then(res=>{clearTimeout(slow);
+      if(!res||!res.cfg)throw new Error((res&&res.error)||'Server không trả dữ liệu — kiểm tra Code.gs đã dán bản v3.2 chưa.');
+      CFG=res.cfg;store={};ingest(res.months||{});start();if(res.error)showErr(res.error)})
+    .catch(e=>{clearTimeout(slow);$('sync-lbl').textContent='';
+      const m=(e&&e.message)||String(e);
+      showErr(/getBoot/.test(m)?'Code.gs chưa phải bản v3.2 (thiếu hàm getBoot). Dán lại Code.gs, bấm Lưu, rồi triển khai Phiên bản mới.':m)});
 }
-try{
-  if(BOOT&&BOOT.cfg){CFG=BOOT.cfg;ingest(BOOT.months||{});start();if(BOOT.error)showErr(BOOT.error)}
-  else boot();
-}catch(e){showErr('Lỗi trang: '+e.message)}
+try{boot()}catch(e){showErr('Lỗi trang: '+e.message)}
 </script>
 </body>
 </html>
