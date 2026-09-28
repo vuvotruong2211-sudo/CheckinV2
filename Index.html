@@ -119,6 +119,11 @@ table{width:100%;border-collapse:collapse}
     <div class="sync"><span id="sync-lbl"></span><button class="btn btn-sm" onclick="refreshAll()">🔄 Tải lại</button></div>
   </div>
 
+  <div id="err-box" class="card hidden" style="border-color:#F5C2B8;background:#FFF4F1;color:#7A1F12">
+    <b>⚠️ Không tải được dữ liệu</b><div id="err-msg" style="font-size:13px;margin:6px 0 10px;word-break:break-word"></div>
+    <button class="btn btn-sm" onclick="boot()">Thử lại</button>
+  </div>
+
   <div class="tabs">
     <div class="tab active" data-t="input" onclick="switchTab('input')">✏️ Nhập liệu</div>
     <div class="tab" data-t="week" onclick="switchTab('week')">📋 Bảng tuần</div>
@@ -262,9 +267,12 @@ table{width:100%;border-collapse:collapse}
 </div>
 <div class="toast" id="toast"></div>
 
+<script type="application/json" id="boot-data"><?!= bootJson ?></script>
 <script>
-// Dữ liệu nhúng sẵn từ server lúc mở trang (config + 2 tháng gần nhất) → không phải chờ gọi thêm
-const BOOT = <?!= bootJson ?>;
+// Dữ liệu nhúng sẵn từ server lúc mở trang (config + 2 tháng gần nhất).
+// Nếu không đọc được (VD Code.gs chưa cập nhật) → tự tải qua server, KHÔNG làm chết cả trang.
+let BOOT=null;
+try{BOOT=JSON.parse(document.getElementById('boot-data').textContent)}catch(e){BOOT=null}
 
 // ── STATE ─────────────────────────────────────────────────
 let CFG={routes:{},routeOrder:[]};
@@ -655,17 +663,24 @@ function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(
 
 // ── INIT ──────────────────────────────────────────────────
 try{drafts=JSON.parse(lsGet(DK)||'{}')||{}}catch(e){drafts={}}
+function showErr(m){$('err-msg').textContent=m;$('err-box').classList.remove('hidden')}
 function start(){
+  $('err-box').classList.add('hidden');
   const last=lsGet('thuchi_route');
   route=CFG.routes[last]?last:(CFG.routeOrder[0]||'');
   renderRoutes();setDate(curDate);markSynced();
+  if(!CFG.routeOrder.length)showErr('Sheet CONFIG chưa có dòng nào (cột A = Tuyến, cột B = Cá nhân).');
 }
-if(BOOT&&BOOT.ok){CFG=BOOT.cfg;ingest(BOOT.months);start()}
-else{
-  // Server lỗi lúc mở trang → thử tải lại qua google.script.run
-  toast('⚠️ '+((BOOT&&BOOT.error)||'Lỗi tải dữ liệu')+' — đang thử lại...');
-  run('refreshAll',[curDate.slice(0,7)]).then(res=>{CFG=res.cfg;ingest(res.months);start()}).catch(e=>toast('⚠️ '+e.message));
+function boot(){
+  $('sync-lbl').textContent='đang tải...';
+  run('refreshAll',[prevYm(curDate.slice(0,7)),curDate.slice(0,7)])
+    .then(res=>{CFG=res.cfg||CFG;store={};ingest(res.months);start()})
+    .catch(e=>{$('sync-lbl').textContent='';showErr((e&&e.message)||String(e))});
 }
+try{
+  if(BOOT&&BOOT.cfg){CFG=BOOT.cfg;ingest(BOOT.months||{});start();if(BOOT.error)showErr(BOOT.error)}
+  else boot();
+}catch(e){showErr('Lỗi trang: '+e.message)}
 </script>
 </body>
 </html>
