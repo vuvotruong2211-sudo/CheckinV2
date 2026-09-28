@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thu Chi</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;color:#222;font-size:14px}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:18px;font-weight:600;color:#1F4E79;margin-bottom:4px}
+.subtitle{font-size:12px;color:#666;margin-bottom:14px}
+.tabs{display:flex;border-bottom:2px solid #ddd;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:9px 18px;cursor:pointer;border-bottom:2px solid transparent;color:#666;font-size:13px;font-weight:500;margin-bottom:-2px}
+.tab.active{color:#1F4E79;border-bottom-color:#1F4E79}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.day-label{font-size:16px;font-weight:600;color:#1F4E79}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;font-weight:500;color:#333}
+.btn:hover{background:#f0f0f0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.btn-primary:hover{background:#185282}
+.btn-success{background:#2E7D32;color:#fff;border-color:#2E7D32}
+.btn-success:hover{background:#1B5E20}
+.btn-sm{padding:4px 10px;font-size:12px}
+input[type=text],input[type=date]{padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fff}
+input[type=text]{width:100%}
+input:focus{outline:none;border-color:#1F4E79}
+.lbl{font-size:12px;color:#555;font-weight:600;margin:12px 0 6px}
+.lbl:first-of-type{margin-top:0}
+.nv-grid{display:flex;flex-wrap:wrap;gap:6px}
+.nv-btn{padding:5px 12px;border-radius:14px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;color:#333}
+.nv-btn:hover{background:#E3F0FF;border-color:#90CAF9;color:#1F4E79}
+.nv-btn.selected{background:#1F4E79;color:#fff;border-color:#1F4E79}
+.seg{display:inline-flex;gap:4px;background:#f0f2f5;padding:3px;border-radius:8px}
+.btn-mode{border:none;background:transparent;padding:7px 18px;border-radius:6px;font-size:13px;font-weight:600;color:#666;cursor:pointer}
+.btn-mode.active{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+#k-thu.active{color:#2E7D32}#k-chi.active{color:#C62828}
+.amt-preview{font-size:12px;color:#1F4E79;margin-top:4px;min-height:16px;font-weight:600}
+.person{padding:10px;background:#f9f9f9;border:1px solid #eee;border-radius:6px;margin-bottom:8px}
+.person.sel{border-color:#1F4E79;background:#F3F8FD}
+.person-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;flex-wrap:wrap}
+.person-name{font-weight:700;color:#1F4E79}
+.person-sum{font-size:11px;color:#666;margin-left:auto}
+.person-sum b.t{color:#2E7D32}.person-sum b.c{color:#C62828}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:14px;padding:3px 9px;font-size:12px;border:1px solid}
+.chip.thu{background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20}
+.chip.chi{background:#FFEBEE;border-color:#EF9A9A;color:#B71C1C}
+.chip.draft{border-style:dashed;background:#fff}
+.chip .rm{cursor:pointer;color:#999;font-size:15px;line-height:1}
+.chip .rm:hover{color:#c00}
+.chip small{color:#888}
+.empty{font-size:11px;color:#bbb}
+.stats-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.stat{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:6px 12px;font-size:12px}
+.stat b{font-size:16px;display:block;color:#1F4E79}
+.stat.warn b{color:#E65100}
+table{width:100%;border-collapse:collapse;font-size:12px}
+#week th{background:#1F4E79;color:#fff;padding:8px 6px;text-align:center;font-weight:600;white-space:nowrap}
+#week th.corner{background:#f4f6f8;color:#555;text-align:left}
+#week th .dow{font-size:10px;opacity:.85;font-weight:500}
+#week td{padding:6px 8px;border-bottom:1px solid #eee;border-right:1px solid #f0f0f0;text-align:right;white-space:nowrap}
+#week td.name{text-align:left;font-weight:700;color:#1F4E79;background:#F5F9FC}
+#week .t{color:#2E7D32}#week .c{color:#C62828}#week .r{font-weight:700}
+#week td.empty-cell{color:#ccc;text-align:center}
+#week tr.total td{background:#EAF1F8;font-weight:700;border-top:2px solid #cddceb}
+#week td.sumcol{background:#FAFBFC}
+.today-col{background:#FFF8E1!important}
+.toast{position:fixed;top:16px;right:16px;background:#1F4E79;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.loading{font-size:11px;color:#999;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>💰 Thu Chi theo ngày</h1>
+  <p class="subtitle">Chọn tuyến → chọn ngày → bấm chọn cá nhân &amp; nội dung → Thêm → <b>Lưu ngày</b></p>
+
+  <div class="card">
+    <div class="card-title">Tuyến</div>
+    <div id="route-bar" class="nv-grid"><span class="empty">Đang tải cấu hình...</span></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('input',this)">✏️ Nhập ngày</div>
+    <div class="tab" onclick="switchTab('week',this)">📋 Tổng hợp</div>
+  </div>
+
+  <!-- TAB NHẬP NGÀY -->
+  <div id="tab-input">
+    <div class="card">
+      <div class="row">
+        <button class="btn btn-sm" onclick="changeDay(-1)">◀</button>
+        <input type="date" id="date-inp" onchange="setDate(this.value)">
+        <button class="btn btn-sm" onclick="changeDay(1)">▶</button>
+        <button class="btn btn-sm" onclick="setDate(todayIso())">Hôm nay</button>
+        <span class="day-label" id="day-label"></span><span class="loading" id="loading"></span>
+        <div style="margin-left:auto" class="row">
+          <button class="btn btn-sm" onclick="loadDay(true)">🔄 Tải lại</button>
+          <button class="btn btn-primary" id="save-btn" onclick="saveDay()">✓ Lưu ngày</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="stats-bar"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">➕ Nhập nhanh</div>
+        <div class="lbl">Cá nhân</div>
+        <div id="driver-bar" class="nv-grid"></div>
+
+        <div class="lbl">Loại</div>
+        <div class="seg">
+          <button class="btn-mode" id="k-thu" onclick="setKind('thu')">Thu</button>
+          <button class="btn-mode" id="k-chi" onclick="setKind('chi')">Chi</button>
+        </div>
+
+        <div class="lbl">Nội dung</div>
+        <div id="content-bar" class="nv-grid" style="margin-bottom:6px"></div>
+        <input type="text" id="content-inp" placeholder="Hoặc gõ nội dung khác..." oninput="if(this.value){content='';renderContent();}">
+
+        <div class="lbl">Số tiền</div>
+        <input type="text" id="amount-inp" inputmode="decimal" placeholder="VD: 500000 · 500k · 1,5tr" oninput="previewAmount()" onkeydown="if(event.key==='Enter')addDraft()">
+        <div class="amt-preview" id="amt-preview"></div>
+
+        <div class="lbl">Ghi chú (tuỳ chọn)</div>
+        <input type="text" id="note-inp" onkeydown="if(event.key==='Enter')addDraft()">
+
+        <button class="btn btn-success" style="width:100%;margin-top:12px;padding:10px" onclick="addDraft()">+ Thêm vào ngày</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👥 Theo cá nhân <span style="font-weight:400;text-transform:none;color:#999">— viền đứt = chưa lưu</span></div>
+        <div id="people"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB TỔNG HỢP -->
+  <div id="tab-week" style="display:none">
+    <div class="card" style="padding:10px 14px">
+      <div class="row">
+        <div class="seg">
+          <button class="btn-mode" id="mode-1" onclick="setMode(1)">1 ngày</button>
+          <button class="btn-mode" id="mode-3" onclick="setMode(3)">3 ngày</button>
+          <button class="btn-mode" id="mode-7" onclick="setMode(7)">Cả tuần</button>
+        </div>
+        <button class="btn btn-sm" onclick="shiftWeek(-1)">◀</button>
+        <div id="week-label" style="font-size:13px;font-weight:600;color:#1F4E79;min-width:130px;text-align:center"></div>
+        <button class="btn btn-sm" onclick="shiftWeek(1)">▶</button>
+        <button class="btn btn-sm" onclick="weekToday()">Hôm nay</button>
+        <button class="btn btn-sm btn-primary" onclick="loadWeek()">🔄 Tải</button>
+        <span class="loading" id="week-loading"></span>
+      </div>
+      <div style="font-size:11px;color:#999;margin-top:6px">Chỉ tính dữ liệu đã lưu lên Sheet. Mỗi ô: <span style="color:#2E7D32">+Thu</span> / <span style="color:#C62828">−Chi</span> / <b>=Còn</b></div>
+    </div>
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table id="week"><thead><tr id="week-head"></tr></thead><tbody id="week-body"></tbody></table>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+let CFG={routes:{},routeOrder:[]};
+let route='', curDate=todayIso(), kind='chi', driver='', content='';
+let saved=[];            // giao dịch đã lưu trên Sheet (tuyến + ngày đang xem)
+let drafts={};           // nháp chưa lưu, key "tuyến|ngày" → [entries] (giữ lại khi refresh)
+let curTab='input', mode=7, weekStart=null;
+const DK='thuchi_draft_v1';
+const THU=['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function loadDrafts(){try{drafts=JSON.parse(lsGet(DK)||'{}')||{}}catch(e){drafts={}}}
+function persist(){lsSet(DK,JSON.stringify(drafts))}
+function dkey(){return route+'|'+curDate}
+function curDrafts(){return drafts[dkey()]||[]}
+
+function pad(n){return String(n).padStart(2,'0')}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function todayIso(){return iso(new Date())}
+function parseIso(s){const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
+function fmtDM(d){return pad(d.getDate())+'/'+pad(d.getMonth()+1)}
+function money(n){return (Number(n)||0).toLocaleString('vi-VN')}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2400)}
+
+// Gọi hàm server dạng Promise
+function run(fn,...args){
+  return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+}
+
+// "500000" · "500.000" · "500k" · "1,5tr" · "2m" → số
+function parseAmount(v){
+  const s=String(v||'').toLowerCase().replace(/\s|đ|vnd/g,'');
+  const m=s.match(/^([\d.,]+)(k|tr|m)?$/);
+  if(!m)return 0;
+  if(m[2]){
+    const n=parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+    return Math.round(n*(m[2]==='k'?1e3:1e6))||0;
+  }
+  return Number(m[1].replace(/[.,]/g,''))||0;
+}
+function previewAmount(){
+  const n=parseAmount(document.getElementById('amount-inp').value);
+  document.getElementById('amt-preview').textContent=n?'= '+money(n)+' đ':'';
+}
+
+// ── TUYẾN & NGÀY ──────────────────────────────────────────
+function renderRoutes(){
+  const el=document.getElementById('route-bar');
+  if(!CFG.routeOrder.length){el.innerHTML='<span class="empty">Sheet CONFIG chưa có tuyến nào.</span>';return;}
+  el.innerHTML=CFG.routeOrder.map((r,i)=>`<span class="nv-btn ${r===route?'selected':''}" onclick="setRoute(${i})">${esc(r)}</span>`).join('');
+}
+function setRoute(i){
+  route=CFG.routeOrder[i];lsSet('thuchi_route',route);
+  driver='';content='';
+  renderRoutes();renderForm();loadDay();
+  if(curTab==='week')loadWeek();
+}
+function setDate(s){
+  if(!s)return;
+  curDate=s;
+  document.getElementById('date-inp').value=s;
+  const d=parseIso(s);
+  document.getElementById('day-label').textContent=`${THU[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+  loadDay();
+}
+function changeDay(dir){const d=parseIso(curDate);d.setDate(d.getDate()+dir);setDate(iso(d))}
+
+function loadDay(force){
+  saved=[];renderPeople();
+  if(!route)return;
+  const r=route,dt=curDate;
+  document.getElementById('loading').textContent='đang tải...';
+  run('listEntries',r,dt,'').then(list=>{
+    if(r!==route||dt!==curDate)return; // người dùng đã chuyển ngày/tuyến
+    saved=list||[];
+    document.getElementById('loading').textContent='';
+    renderPeople();
+    if(force)toast(`✓ Đã tải ${saved.length} giao dịch`);
+  }).catch(e=>{document.getElementById('loading').textContent='';toast('⚠️ '+e.message)});
+}
+
+// ── FORM NHẬP NHANH ───────────────────────────────────────
+function rc(){return CFG.routes[route]||{drivers:[],thu:[],chi:[]}}
+function renderForm(){
+  const drv=rc().drivers;
+  document.getElementById('driver-bar').innerHTML=drv.length
+    ?drv.map((d,i)=>`<span class="nv-btn ${d===driver?'selected':''}" onclick="pickDriver(${i})">${esc(d)}</span>`).join('')
+    :'<span class="empty">Tuyến này chưa khai báo Cá nhân trong CONFIG.</span>';
+  document.getElementById('k-thu').classList.toggle('active',kind==='thu');
+  document.getElementById('k-chi').classList.toggle('active',kind==='chi');
+  renderContent();
+}
+function renderContent(){
+  const list=rc()[kind]||[];
+  document.getElementById('content-bar').innerHTML=list.length
+    ?list.map((c,i)=>`<span class="nv-btn ${c===content?'selected':''}" onclick="pickContent(${i})">${esc(c)}</span>`).join('')
+    :'<span class="empty">Chưa có nội dung mẫu — gõ tay bên dưới.</span>';
+}
+function pickDriver(i){driver=rc().drivers[i];renderForm();renderPeople()}
+function selectDriverByName(n){driver=n;renderForm();renderPeople()}
+function setKind(k){kind=k;content='';renderForm()}
+function pickContent(i){content=rc()[kind][i];document.getElementById('content-inp').value='';renderContent();document.getElementById('amount-inp').focus()}
+
+function addDraft(){
+  if(!route){toast('⚠️ Chọn tuyến trước');return;}
+  if(!driver){toast('⚠️ Chọn cá nhân');return;}
+  const c=document.getElementById('content-inp').value.trim()||content;
+  if(!c){toast('⚠️ Chọn hoặc gõ nội dung');return;}
+  const amt=parseAmount(document.getElementById('amount-inp').value);
+  if(!amt){toast('⚠️ Số tiền không hợp lệ');return;}
+  const note=document.getElementById('note-inp').value.trim();
+  const k=dkey();
+  (drafts[k]=drafts[k]||[]).push({id:Date.now()+'_'+Math.random().toString(36).slice(2,6),driver,kind,content:c,amount:amt,note});
+  persist();
+  // Giữ cá nhân + loại để nhập liên tục; xoá nội dung/số tiền/ghi chú
+  content='';
+  ['content-inp','amount-inp','note-inp'].forEach(id=>document.getElementById(id).value='');
+  previewAmount();renderContent();renderPeople();
+  toast(`+ ${driver}: ${c} ${money(amt)}`);
+}
+function rmDraft(id){
+  const k=dkey();
+  drafts[k]=(drafts[k]||[]).filter(e=>e.id!==id);
+  if(!drafts[k].length)delete drafts[k];
+  persist();renderPeople();
+}
+
+// ── KHỐI THEO CÁ NHÂN (giống block ca bên lịch làm việc) ──
+function renderPeople(){
+  const dr=curDrafts();
+  const names=[...rc().drivers];
+  saved.concat(dr).forEach(e=>{if(e.driver&&!names.includes(e.driver))names.push(e.driver)});
+  let T=0,C=0;
+  const html=names.map(n=>{
+    const s=saved.filter(e=>e.driver===n), d=dr.filter(e=>e.driver===n);
+    const thu=s.reduce((a,e)=>a+e.thu,0)+d.filter(e=>e.kind==='thu').reduce((a,e)=>a+e.amount,0);
+    const chi=s.reduce((a,e)=>a+e.chi,0)+d.filter(e=>e.kind==='chi').reduce((a,e)=>a+e.amount,0);
+    T+=thu;C+=chi;
+    const chips=s.map(e=>{
+      const k=e.thu?'thu':'chi', amt=e.thu||e.chi;
+      return `<span class="chip ${k}" title="${esc(e.note)}">${esc(e.content)} <b>${money(amt)}</b>${e.note?' <small>📝</small>':''}<span class="rm" onclick="delSaved(${e.row})">×</span></span>`;
+    }).concat(d.map(e=>
+      `<span class="chip ${e.kind} draft" title="Chưa lưu${e.note?' · '+esc(e.note):''}">${esc(e.content)} <b>${money(e.amount)}</b><span class="rm" onclick="rmDraft('${e.id}')">×</span></span>`
+    )).join('');
+    return `<div class="person ${n===driver?'sel':''}">
+      <div class="person-head" onclick="selectDriverByName(${esc(JSON.stringify(n))})">
+        <span class="person-name">${esc(n)}</span>
+        <span class="person-sum">Thu <b class="t">${money(thu)}</b> · Chi <b class="c">${money(chi)}</b> · Còn <b>${money(thu-chi)}</b></span>
+      </div>
+      <div class="chips">${chips||'<span class="empty">Chưa có giao dịch</span>'}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('people').innerHTML=html||'<span class="empty">Chưa có dữ liệu.</span>';
+
+  document.getElementById('stats-bar').innerHTML=`
+    <div class="stat"><b style="color:#2E7D32">${money(T)}</b>Tổng thu</div>
+    <div class="stat"><b style="color:#C62828">${money(C)}</b>Tổng chi</div>
+    <div class="stat"><b>${money(T-C)}</b>Còn lại</div>
+    <div class="stat ${dr.length?'warn':''}"><b>${dr.length}</b>Chưa lưu</div>`;
+  const btn=document.getElementById('save-btn');
+  btn.textContent=dr.length?`✓ Lưu ngày (${dr.length})`:'✓ Lưu ngày';
+  btn.disabled=!dr.length;
+}
+
+// ── LƯU NGÀY (gửi cả loạt nháp lên Sheet 1 lần) ──────────
+function saveDay(){
+  const k=dkey(), list=curDrafts().slice();
+  if(!list.length){toast('Không có mục mới để lưu');return;}
+  const r=route,dt=curDate;
+  const btn=document.getElementById('save-btn');btn.disabled=true;btn.textContent='Đang lưu...';
+  const payload=list.map(e=>({route:r,driver:e.driver,date:dt,kind:e.kind,content:e.content,amount:e.amount,note:e.note}));
+  run('saveBatch',payload).then(res=>{
+    const ids=new Set(list.map(e=>e.id));
+    drafts[k]=(drafts[k]||[]).filter(e=>!ids.has(e.id)); // giữ lại mục thêm trong lúc đang lưu
+    if(!drafts[k].length)delete drafts[k];
+    persist();
+    toast(`✓ Đã lưu ${res.count} giao dịch lên Sheet`);
+    loadDay();
+  }).catch(e=>{toast('⚠️ '+e.message);renderPeople()});
+}
+
+function delSaved(row){
+  const e=saved.find(x=>x.row===row);if(!e)return;
+  if(!confirm(`Xoá khỏi Sheet: ${e.driver} · ${e.content} · ${money(e.thu||e.chi)}?`))return;
+  run('deleteEntry',row,{route:e.route,driver:e.driver,date:e.date,stt:e.stt})
+    .then(()=>{toast('🗑 Đã xoá');loadDay()})
+    .catch(err=>{toast('⚠️ '+err.message);loadDay()});
+}
+
+// ── TAB TỔNG HỢP (lưới Cá nhân × Ngày) ────────────────────
+function mondayOf(d){const x=new Date(d);const w=x.getDay();x.setDate(x.getDate()+(w===0?-6:1-w));return x}
+function ensureWeek(){if(!weekStart)weekStart=mondayOf(parseIso(curDate))}
+function setMode(m){ensureWeek();if(m===7)weekStart=mondayOf(weekStart);mode=m;loadWeek()}
+function shiftWeek(dir){ensureWeek();weekStart.setDate(weekStart.getDate()+dir*mode);if(mode===7)weekStart=mondayOf(weekStart);loadWeek()}
+function weekToday(){weekStart=mode===7?mondayOf(new Date()):parseIso(todayIso());loadWeek()}
+function weekDays(){ensureWeek();const a=[];for(let i=0;i<mode;i++){const d=new Date(weekStart);d.setDate(d.getDate()+i);a.push(d)}return a}
+
+function loadWeek(){
+  ['1','3','7'].forEach(m=>document.getElementById('mode-'+m).classList.toggle('active',mode===Number(m)));
+  const days=weekDays();
+  document.getElementById('week-label').textContent=days.length===1?fmtDM(days[0]):`${fmtDM(days[0])} → ${fmtDM(days[days.length-1])}`;
+  if(!route)return;
+  const r=route,from=iso(days[0]),to=iso(days[days.length-1]);
+  document.getElementById('week-loading').textContent='đang tải...';
+  run('getRangeSummary',r,from,to).then(rows=>{
+    if(r!==route)return;
+    document.getElementById('week-loading').textContent='';
+    renderWeek(days,rows||[]);
+  }).catch(e=>{document.getElementById('week-loading').textContent='';toast('⚠️ '+e.message)});
+}
+
+function cellHtml(t,c,extra){
+  if(!t&&!c)return `<td class="empty-cell ${extra||''}">—</td>`;
+  return `<td class="${extra||''}">${t?`<div class="t">+${money(t)}</div>`:''}${c?`<div class="c">−${money(c)}</div>`:''}<div class="r">=${money(t-c)}</div></td>`;
+}
+function renderWeek(days,rows){
+  const dow=['CN','T2','T3','T4','T5','T6','T7'], today=todayIso(), keys=days.map(iso);
+  let head='<th class="corner">Cá nhân</th>';
+  days.forEach(d=>{head+=`<th class="${iso(d)===today?'today-col':''}"><div>${fmtDM(d)}</div><div class="dow">${dow[d.getDay()]}</div></th>`});
+  head+='<th>Cộng</th>';
+  document.getElementById('week-head').innerHTML=head;
+
+  const map={};rows.forEach(x=>{map[x.date+'|'+x.driver]=x});
+  const names=[...rc().drivers];rows.forEach(x=>{if(!names.includes(x.driver))names.push(x.driver)});
+  const colT={},colC={};keys.forEach(k=>{colT[k]=0;colC[k]=0});
+  let body='',GT=0,GC=0;
+  names.forEach(n=>{
+    let rt=0,rcx=0,cells='';
+    keys.forEach(k=>{
+      const x=map[k+'|'+n]||{thu:0,chi:0};
+      rt+=x.thu;rcx+=x.chi;colT[k]+=x.thu;colC[k]+=x.chi;
+      cells+=cellHtml(x.thu,x.chi,k===today?'today-col':'');
+    });
+    GT+=rt;GC+=rcx;
+    body+=`<tr><td class="name">${esc(n)}</td>${cells}${cellHtml(rt,rcx,'sumcol')}</tr>`;
+  });
+  body+=`<tr class="total"><td class="name">Tổng</td>${keys.map(k=>cellHtml(colT[k],colC[k])).join('')}${cellHtml(GT,GC)}</tr>`;
+  document.getElementById('week-body').innerHTML=body;
+}
+
+// ── TAB SWITCH ────────────────────────────────────────────
+function switchTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');
+  document.getElementById('tab-input').style.display=t==='input'?'':'none';
+  document.getElementById('tab-week').style.display=t==='week'?'':'none';
+  if(t==='week'){weekStart=null;loadWeek()}
+}
+
+// ── INIT ──────────────────────────────────────────────────
+loadDrafts();
+document.getElementById('date-inp').value=curDate;
+run('getInitData').then(d=>{
+  CFG=d||CFG;
+  const last=lsGet('thuchi_route');
+  route=CFG.routes[last]?last:(CFG.routeOrder[0]||'');
+  renderRoutes();renderForm();setDate(curDate);
+}).catch(e=>toast('⚠️ Không tải được cấu hình: '+e.message));
+</script>
+</body>
+</html>
